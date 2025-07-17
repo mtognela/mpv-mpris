@@ -80,6 +80,7 @@ typedef struct UserData
     guint player_interface_id;
     const char *status;
     const char *loop_status;
+    gboolean shuffle;
     GHashTable *changed_properties;
     GVariant *metadata;
     gboolean seek_expected;
@@ -769,7 +770,7 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
 
     } else if (g_strcmp0(property_name, "Shuffle") == 0) {
         int shuffle = g_variant_get_boolean(value);
-        if (shuffle) {
+        if (shuffle && !ud->shuffle) {
             const char *cmd[] = {"playlist-shuffle", NULL};
             mpv_command_async(ud->mpv, 0, cmd);
         }
@@ -994,6 +995,7 @@ static void handle_property_change(const char *name, void *data, UserData *ud)
 
     } else if (g_strcmp0(name, "shuffle") == 0) {
         int shuffle = *(int*)data;
+        ud->shuffle = shuffle;
         prop_name = "Shuffle";
         prop_value = g_variant_new_boolean(shuffle);
 
@@ -1091,6 +1093,7 @@ int mpv_open_cplugin(mpv_handle *mpv)
     ud.seek_expected = FALSE;
     ud.idle = FALSE;
     ud.paused = FALSE;
+    ud.shuffle = FALSE;
 
     g_main_context_push_thread_default(ctx);
     ud.bus_id = g_bus_own_name(G_BUS_TYPE_SESSION,
