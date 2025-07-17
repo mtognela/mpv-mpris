@@ -775,7 +775,6 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
             mpv_command_async(ud->mpv, 0, cmd);
         }
         mpv_set_property(ud->mpv, "shuffle", MPV_FORMAT_FLAG, &shuffle);
-        ud->shuffle = shuffle;
 
     } else if (g_strcmp0(property_name, "Volume") == 0) {
         double volume = g_variant_get_double(value);
