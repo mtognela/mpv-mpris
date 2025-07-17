@@ -770,7 +770,7 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
 
     } else if (g_strcmp0(property_name, "Shuffle") == 0) {
         int shuffle = g_variant_get_boolean(value);
-        if (shuffle && shuffle != ud->shuffle) {
+        if (shuffle && !ud->shuffle) {
             const char *cmd[] = {"playlist-shuffle", NULL};
             mpv_command_async(ud->mpv, 0, cmd);
         }
