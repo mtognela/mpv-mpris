@@ -773,6 +773,9 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
         if (shuffle && !ud->shuffle) {
             const char *cmd[] = {"playlist-shuffle", NULL};
             mpv_command_async(ud->mpv, 0, cmd);
+        } else if (!shuffle && ud->shuffle) {
+            const char *cmd[] = {"playlist-unshuffle", NULL};
+            mpv_command_async(ud->mpv, 0, cmd);
         }
         mpv_set_property(ud->mpv, "shuffle", MPV_FORMAT_FLAG, &shuffle);
 
