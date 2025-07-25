@@ -9,3 +9,4 @@ mpris.so
 *.socat.log
 *.exit-code.log
 *.stderr.log
+debug
