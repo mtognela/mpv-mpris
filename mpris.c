@@ -5,8 +5,6 @@
 #include <inttypes.h>
 #include <string.h>
 
-
-
 static const char *introspection_xml =
     "<node>\n"
     "  <interface name=\"org.mpris.MediaPlayer2\">\n"
