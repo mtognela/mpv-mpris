@@ -284,34 +284,80 @@ static gchar* try_get_youtube_thumbnail(char *path)
     return out;
 }
 
-static gchar* extract_embedded_art(AVFormatContext *context) {
+static gchar* get_cache_dir() {
+    gchar *cache_dir = g_build_filename(g_get_user_cache_dir(), "mpv-mpris", "coverart", NULL);
+    
+    if (g_mkdir_with_parents(cache_dir, 0755) < 0) {
+        g_warning("Failed to create cache directory: %s", g_strerror(errno));
+        g_free(cache_dir);
+        return NULL;
+    }
+    
+    return cache_dir;
+}
+
+static gchar* generate_cache_filename(const char *path) {
+    gchar *hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256, path, -1);
+    gchar *filename = g_strconcat(hash, ".jpg", NULL);
+    g_free(hash);
+    return filename;
+}
+
+static gchar* extract_embedded_art(AVFormatContext *context, const char *media_path) {
     AVPacket *packet = NULL;
+    gchar *cache_path = NULL;
+    gchar *uri = NULL;
+    
     for (unsigned int i = 0; i < context->nb_streams; i++) {
         if (context->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
             packet = &context->streams[i]->attached_pic;
+            break;
         }
     }
+    
     if (!packet) {
         return NULL;
     }
 
-    gchar *data = g_base64_encode(packet->data, packet->size);
-    gchar *img = g_strconcat("data:image/jpeg;base64,", data, NULL);
+    gchar *cache_dir = get_cache_dir();
+    if (!cache_dir) {
+        return NULL;
+    }
 
-    g_free(data);
-    return img;
+    gchar *cache_filename = generate_cache_filename(media_path);
+    cache_path = g_build_filename(cache_dir, cache_filename, NULL);
+    g_free(cache_filename);
+    
+    if (!g_file_test(cache_path, G_FILE_TEST_EXISTS)) {
+        GError *error = NULL;
+        if (!g_file_set_contents(cache_path, (const gchar*)packet->data, 
+                                packet->size, &error)) {
+            g_warning("Failed to write cover art to cache: %s", error->message);
+            g_error_free(error);
+            g_free(cache_path);
+            g_free(cache_dir);
+            return NULL;
+        }
+    }
+
+    uri = g_filename_to_uri(cache_path, NULL, NULL);
+    
+    g_free(cache_path);
+    g_free(cache_dir);
+    return uri;
 }
 
 static gchar* try_get_embedded_art(char *path)
 {
-    gchar *out = NULL;
+    gchar *uri = NULL;
     AVFormatContext *context = NULL;
+    
     if (!avformat_open_input(&context, path, NULL, NULL)) {
-        out = extract_embedded_art(context);
+        uri = extract_embedded_art(context, path);
         avformat_close_input(&context);
     }
 
-    return out;
+    return uri;
 }
 
 // cached last file path, owned by mpv
