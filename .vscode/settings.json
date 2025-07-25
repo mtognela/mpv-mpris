@@ -1,8 +1,9 @@
 {
-    "C_Cpp.errorSquiggles": "enabled",
     "files.associations": {
-        "gio.h": "c",
         "string.h": "c",
-        "avformat.h": "c"
+        "inttypes.h": "c",
+        "avformat.h": "c",
+        "gio.h": "c"
     }
+    
 }
