@@ -682,12 +682,19 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
         new_position_s = ((float)new_position_us) / 1000000.0; // us -> s
 
         if (current_id == g_ascii_strtoll(object_path + 1, NULL, 10)) {
-            mpv_set_property(ud->mpv, "time-pos", MPV_FORMAT_DOUBLE, &new_position_s);
+            // Use MPV's seek command instead of setting time-pos property
+            char *position_str = g_strdup_printf("%.6f", new_position_s);
+            
+            const char *cmd[] = {"seek", position_str, "absolute", "exact", NULL};
+            mpv_command_async(ud->mpv, 0, cmd);
+
+            g_free(position_str);
         }
 
         g_dbus_method_invocation_return_value(invocation, NULL);
 
-    } else if (g_strcmp0(method_name, "OpenUri") == 0) {
+    }
+ else if (g_strcmp0(method_name, "OpenUri") == 0) {
         char *uri;
         g_variant_get(parameters, "(&s)", &uri);
         const char *cmd[] = {"loadfile", uri, NULL};
@@ -941,7 +948,9 @@ static void on_bus_acquired(GDBusConnection *connection,
                                           &vtable_root,
                                           user_data, NULL, &error);
     if (error != NULL) {
-        g_printerr("%s", error->message);
+        g_printerr("Failed to register root interface: %s\n", error->message);
+        g_error_free(error);  // Free the error
+        error = NULL;         // Reset to NULL
     }
 
     ud->player_interface_id =
@@ -950,7 +959,8 @@ static void on_bus_acquired(GDBusConnection *connection,
                                         &vtable_player,
                                         user_data, NULL, &error);
     if (error != NULL) {
-        g_printerr("%s", error->message);
+        g_printerr("Failed to register player interface: %s\n", error->message);
+        g_error_free(error);
     }
 }
 
