@@ -4,6 +4,7 @@
         "inttypes.h": "c",
         "avformat.h": "c",
         "gio.h": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "disabled"
     
 }
