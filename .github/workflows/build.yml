@@ -3,7 +3,6 @@ name: build
 
 on: [push, pull_request]
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,7 +21,7 @@ jobs:
           make
 
       - name: Upload binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  
         with:
           name: mpris.so
           path: mpris.so
