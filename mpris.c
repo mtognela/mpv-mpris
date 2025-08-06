@@ -30,6 +30,7 @@
 #include <string.h>
 
 #define CACHE_MAX_AGE_DAYS 15 
+#define SECOND_TO_DAYS 24 * 60 * 60
 
 // cached last file path, owned by mpv
 static char *cached_path = NULL;
@@ -349,6 +350,7 @@ static gchar *get_cache_dir()
     return cache_dir;
 }
 
+// to refactor 
 static gchar *generate_cache_filename(const char *path)
 {
     gchar *hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256, path, -1);
@@ -425,12 +427,14 @@ static gchar *try_get_embedded_art(char *path)
 static void cleanup_old_cache_files()
 {
     gchar *cache_dir = get_cache_dir();
+
     if (!cache_dir)
     {
         return;
     }
 
     DIR *dir = opendir(cache_dir);
+
     if (!dir)
     {
         g_free(cache_dir);
@@ -438,7 +442,8 @@ static void cleanup_old_cache_files()
     }
 
     time_t current_time = time(NULL);
-    time_t max_age = CACHE_MAX_AGE_DAYS * 24 * 60 * 60; // Convert days to seconds
+    time_t max_age = CACHE_MAX_AGE_DAYS * SECOND_TO_DAYS; // Convert days to seconds
+
     struct dirent *entry;
     struct stat file_stat;
 
@@ -450,6 +455,7 @@ static void cleanup_old_cache_files()
             continue;
         }
 
+        // to refactor 
         if (!g_str_has_suffix(entry->d_name, ".jpg"))
         {
             continue;
