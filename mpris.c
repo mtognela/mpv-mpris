@@ -29,6 +29,8 @@
 #include <inttypes.h>
 #include <string.h>
 
+#define CACHE_MAX_AGE_DAYS 15 
+
 static const char *introspection_xml =
     "<node>\n"
     "  <interface name=\"org.mpris.MediaPlayer2\">\n"
@@ -412,6 +414,64 @@ static gchar *try_get_embedded_art(char *path)
     }
 
     return uri;
+}
+
+static void cleanup_old_cache_files()
+{
+    gchar *cache_dir = get_cache_dir();
+    if (!cache_dir)
+    {
+        return;
+    }
+
+    DIR *dir = opendir(cache_dir);
+    if (!dir)
+    {
+        g_free(cache_dir);
+        return;
+    }
+
+    time_t current_time = time(NULL);
+    time_t max_age = CACHE_MAX_AGE_DAYS * 24 * 60 * 60; // Convert days to seconds
+    struct dirent *entry;
+    struct stat file_stat;
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        // Skip . and .. directories
+        if (g_strcmp0(entry->d_name, ".") == 0 || g_strcmp0(entry->d_name, "..") == 0)
+        {
+            continue;
+        }
+
+        if (!g_str_has_suffix(entry->d_name, ".jpg"))
+        {
+            continue;
+        }
+
+        gchar *file_path = g_build_filename(cache_dir, entry->d_name, NULL);
+
+        if (stat(file_path, &file_stat) == 0)
+        {
+            // Check if file is older than max age
+            if (current_time - file_stat.st_mtime > max_age)
+            {
+                if (unlink(file_path) == 0)
+                {
+                    g_debug("Cleaned up old cache file: %s", entry->d_name);
+                }
+                else
+                {
+                    g_warning("Failed to remove old cache file: %s", file_path);
+                }
+            }
+        }
+
+        g_free(file_path);
+    }
+
+    closedir(dir);
+    g_free(cache_dir);
 }
 
 // cached last file path, owned by mpv
@@ -1374,6 +1434,8 @@ int mpv_open_cplugin(mpv_handle *mpv)
     g_source_attach(timeout_source, ctx);
 
     g_main_loop_run(loop);
+
+    cleanup_old_cache_files();
 
     g_source_unref(mpv_pipe_source);
     g_source_unref(timeout_source);
