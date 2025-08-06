@@ -10,4 +10,5 @@ mpris.so
 *.exit-code.log
 *.stderr.log
 .vscode/
+_temp/
 
