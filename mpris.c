@@ -32,11 +32,56 @@
 #define CACHE_MAX_AGE_DAYS 15 
 #define SECOND_TO_DAYS 24 * 60 * 60
 
-// cached last file path, owned by mpv
-static char *cached_path = NULL;
+// Copied from https://github.com/videolan/vlc/blob/master/modules/meta_engine/folder.c
+static const char art_files[][20] = {
+    "Folder.jpg", /* Windows */
+    "Folder.png",
+    "AlbumArtSmall.jpg", /* Windows */
+    "AlbumArt.jpg",      /* Windows */
+    "Album.jpg",
+    ".folder.png", /* KDE?    */
+    "cover.jpg",   /* rockbox */
+    "cover.png",
+    "cover.gif",
+    "front.jpg",
+    "front.png",
+    "front.gif",
+    "front.bmp",
+    "thumb.jpg",
+};
 
-// cached last artwork url, owned by glib
-static gchar *cached_art_url = NULL;
+typedef struct UserData
+{
+    mpv_handle *mpv;
+    GMainLoop *loop;
+    gint bus_id;
+    GDBusConnection *connection;
+    GDBusInterfaceInfo *root_interface_info;
+    GDBusInterfaceInfo *player_interface_info;
+    guint root_interface_id;
+    guint player_interface_id;
+    const char *status;
+    const char *loop_status;
+    gboolean shuffle;
+    GHashTable *changed_properties;
+    GVariant *metadata;
+    gboolean seek_expected;
+    gboolean idle;
+    gboolean paused;
+    
+    // cache filed 
+    char *cached_path;      // owned by mpv
+    gchar *cached_art_url;  // owned by glib
+} UserData;
+
+static const int art_files_count = sizeof(art_files) / sizeof(art_files[0]);
+
+static const char *STATUS_PLAYING = "Playing";
+static const char *STATUS_PAUSED = "Paused";
+static const char *STATUS_STOPPED = "Stopped";
+static const char *LOOP_NONE = "None";
+static const char *LOOP_TRACK = "Track";
+static const char *LOOP_PLAYLIST = "Playlist";
 
 static const char *introspection_xml =
     "<node>\n"
@@ -98,33 +143,6 @@ static const char *introspection_xml =
     "    <property name=\"CanControl\" type=\"b\" access=\"read\"/>\n"
     "  </interface>\n"
     "</node>\n";
-
-typedef struct UserData
-{
-    mpv_handle *mpv;
-    GMainLoop *loop;
-    gint bus_id;
-    GDBusConnection *connection;
-    GDBusInterfaceInfo *root_interface_info;
-    GDBusInterfaceInfo *player_interface_info;
-    guint root_interface_id;
-    guint player_interface_id;
-    const char *status;
-    const char *loop_status;
-    gboolean shuffle;
-    GHashTable *changed_properties;
-    GVariant *metadata;
-    gboolean seek_expected;
-    gboolean idle;
-    gboolean paused;
-} UserData;
-
-static const char *STATUS_PLAYING = "Playing";
-static const char *STATUS_PAUSED = "Paused";
-static const char *STATUS_STOPPED = "Stopped";
-static const char *LOOP_NONE = "None";
-static const char *LOOP_TRACK = "Track";
-static const char *LOOP_PLAYLIST = "Playlist";
 
 static gchar *string_to_utf8(gchar *maybe_utf8)
 {
@@ -261,25 +279,77 @@ static void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
     mpv_free(path);
 }
 
-// Copied from https://github.com/videolan/vlc/blob/master/modules/meta_engine/folder.c
-static const char art_files[][20] = {
-    "Folder.jpg", /* Windows */
-    "Folder.png",
-    "AlbumArtSmall.jpg", /* Windows */
-    "AlbumArt.jpg",      /* Windows */
-    "Album.jpg",
-    ".folder.png", /* KDE?    */
-    "cover.jpg",   /* rockbox */
-    "cover.png",
-    "cover.gif",
-    "front.jpg",
-    "front.png",
-    "front.gif",
-    "front.bmp",
-    "thumb.jpg",
-};
+static const char* get_image_extension(const uint8_t *data, size_t size) {
+    if (!data || size < 4) {
+        return ".jpg"; // fallback for invalid input
+    }
 
-static const int art_files_count = sizeof(art_files) / sizeof(art_files[0]);
+    // JPEG - FF D8 FF (followed by various markers)
+    if (size >= 4 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF) {
+        return ".jpg";
+    }
+
+    // PNG - 89 50 4E 47 0D 0A 1A 0A
+    if (size >= 8 && memcmp(data, "\x89PNG\r\n\x1a\n", 8) == 0) {
+        return ".png";
+    }
+
+    // GIF87a - 47 49 46 38 37 61
+    if (size >= 6 && memcmp(data, "GIF87a", 6) == 0) {
+        return ".gif";
+    }
+
+    // GIF89a - 47 49 46 38 39 61
+    if (size >= 6 && memcmp(data, "GIF89a", 6) == 0) {
+        return ".gif";
+    }
+
+    // WebP - RIFF header with WEBP signature
+    if (size >= 12 && memcmp(data, "RIFF", 4) == 0 && memcmp(data + 8, "WEBP", 4) == 0) {
+        return ".webp";
+    }
+
+    // BMP - BM signature
+    if (size >= 2 && data[0] == 0x42 && data[1] == 0x4D) {
+        return ".bmp";
+    }
+
+    // TIFF (Little Endian) - 49 49 2A 00
+    if (size >= 4 && memcmp(data, "II\x2A\x00", 4) == 0) {
+        return ".tiff";
+    }
+
+    // TIFF (Big Endian) - 4D 4D 00 2A
+    if (size >= 4 && memcmp(data, "MM\x00\x2A", 4) == 0) {
+        return ".tiff";
+    }
+
+    // AVIF - ftyp box with AVIF brand
+    if (size >= 12 && memcmp(data + 4, "ftypavif", 8) == 0) {
+        return ".avif";
+    }
+
+    // HEIC/HEIF - ftyp box with various HEIC brands
+    if (size >= 12 && memcmp(data + 4, "ftyp", 4) == 0) {
+        const char *brand = (const char*)(data + 8);
+        if (memcmp(brand, "heic", 4) == 0 || 
+            memcmp(brand, "heix", 4) == 0 ||
+            memcmp(brand, "hevc", 4) == 0 ||
+            memcmp(brand, "hevx", 4) == 0) {
+            return ".heic";
+        }
+    }
+
+    // ICO - 00 00 01 00
+    if (size >= 4 && data[0] == 0x00 && data[1] == 0x00 && 
+        data[2] == 0x01 && data[3] == 0x00) {
+        return ".ico";
+    }
+
+    // Default fallback - JPEG is most common for embedded album art
+    return ".jpg";
+}
+
 
 static gchar *try_get_local_art(mpv_handle *mpv, char *path)
 {
@@ -350,51 +420,44 @@ static gchar *get_cache_dir()
     return cache_dir;
 }
 
-// to refactor 
-static gchar *generate_cache_filename(const char *path)
-{
+static gchar* generate_cache_filename(const char *path, const uint8_t *image_data, size_t image_size) {
     gchar *hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256, path, -1);
-    gchar *filename = g_strconcat(hash, ".jpg", NULL);
+    const char *ext = get_image_extension(image_data, image_size);
+    gchar *filename = g_strconcat(hash, ext, NULL);
     g_free(hash);
     return filename;
 }
 
-static gchar *extract_embedded_art(AVFormatContext *context, const char *media_path)
-{
+static gchar* extract_embedded_art(AVFormatContext *context, const char *media_path) {
     AVPacket *packet = NULL;
     gchar *cache_path = NULL;
     gchar *uri = NULL;
-
-    for (unsigned int i = 0; i < context->nb_streams; i++)
-    {
-        if (context->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC)
-        {
+    
+    for (unsigned int i = 0; i < context->nb_streams; i++) {
+        if (context->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
             packet = &context->streams[i]->attached_pic;
             break;
         }
     }
-
-    if (!packet)
-    {
+    
+    if (!packet) {
         return NULL;
     }
 
     gchar *cache_dir = get_cache_dir();
-    if (!cache_dir)
-    {
+    if (!cache_dir) {
         return NULL;
     }
 
-    gchar *cache_filename = generate_cache_filename(media_path);
+    // Use the new function that detects the correct extension
+    gchar *cache_filename = generate_cache_filename(media_path, packet->data, packet->size);
     cache_path = g_build_filename(cache_dir, cache_filename, NULL);
     g_free(cache_filename);
-
-    if (!g_file_test(cache_path, G_FILE_TEST_EXISTS))
-    {
+    
+    if (!g_file_test(cache_path, G_FILE_TEST_EXISTS)) {
         GError *error = NULL;
-        if (!g_file_set_contents(cache_path, (const gchar *)packet->data,
-                                 packet->size, &error))
-        {
+        if (!g_file_set_contents(cache_path, (const gchar*)packet->data, 
+                                packet->size, &error)) {
             g_warning("Failed to write cover art to cache: %s", error->message);
             g_error_free(error);
             g_free(cache_path);
@@ -404,7 +467,7 @@ static gchar *extract_embedded_art(AVFormatContext *context, const char *media_p
     }
 
     uri = g_filename_to_uri(cache_path, NULL, NULL);
-
+    
     g_free(cache_path);
     g_free(cache_dir);
     return uri;
@@ -486,43 +549,37 @@ static void cleanup_old_cache_files()
     g_free(cache_dir);
 }
 
-static void add_metadata_art(mpv_handle *mpv, GVariantDict *dict)
+static void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud)
 {
     char *path = mpv_get_property_string(mpv, "path");
 
-    if (!path)
-    {
+    if (!path) {
         return;
     }
 
-    // mpv may call create_metadata multiple times, so cache to save CPU
-    if (!cached_path || strcmp(path, cached_path))
-    {
-        mpv_free(cached_path);
-        g_free(cached_art_url);
-        cached_path = path;
+    // Check cache using UserData instead of globals
+    if (!ud->cached_path || strcmp(path, ud->cached_path)) {
+        // Clear old cache
+        mpv_free(ud->cached_path);
+        g_free(ud->cached_art_url);
+        
+        // Set new cache
+        ud->cached_path = path;
 
-        if (g_str_has_prefix(path, "http"))
-        {
-            cached_art_url = try_get_youtube_thumbnail(path);
-        }
-        else
-        {
-            cached_art_url = try_get_embedded_art(path);
-            if (!cached_art_url)
-            {
-                cached_art_url = try_get_local_art(mpv, path);
+        if (g_str_has_prefix(path, "http")) {
+            ud->cached_art_url = try_get_youtube_thumbnail(path);
+        } else {
+            ud->cached_art_url = try_get_embedded_art(path);
+            if (!ud->cached_art_url) {
+                ud->cached_art_url = try_get_local_art(mpv, path);
             }
         }
-    }
-    else
-    {
+    } else {
         mpv_free(path);
     }
 
-    if (cached_art_url)
-    {
-        g_variant_dict_insert(dict, "mpris:artUrl", "s", cached_art_url);
+    if (ud->cached_art_url) {
+        g_variant_dict_insert(dict, "mpris:artUrl", "s", ud->cached_art_url);
     }
 }
 
@@ -626,7 +683,7 @@ static GVariant *create_metadata(UserData *ud)
     add_metadata_item_int(ud->mpv, &dict, "metadata/by-key/Disc", "xesam:discNumber");
 
     add_metadata_uri(ud->mpv, &dict);
-    add_metadata_art(ud->mpv, &dict);
+    add_metadata_art(ud->mpv, &dict, ud); 
     add_metadata_content_created(ud->mpv, &dict);
 
     return g_variant_dict_end(&dict);
@@ -1440,6 +1497,9 @@ int mpv_open_cplugin(mpv_handle *mpv)
     g_source_attach(timeout_source, ctx);
 
     g_main_loop_run(loop);
+
+    mpv_free(ud.cached_path);
+    g_free(ud.cached_art_url);
 
     cleanup_old_cache_files();
 
