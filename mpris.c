@@ -82,6 +82,10 @@ static const char *STATUS_STOPPED = "Stopped";
 static const char *LOOP_NONE = "None";
 static const char *LOOP_TRACK = "Track";
 static const char *LOOP_PLAYLIST = "Playlist";
+static const char *youtube_url_pattern =
+    "^https?:\\/\\/(?:youtu.be\\/|(?:www\\.)?youtube\\.com\\/watch\\?v=)(?<id>[a-zA-Z0-9_-]*)\\??.*";
+
+static GRegex *youtube_url_regex;
 
 static const char *introspection_xml =
     "<node>\n"
@@ -350,7 +354,6 @@ static const char* get_image_extension(const uint8_t *data, size_t size) {
     return ".jpg";
 }
 
-
 static gchar *try_get_local_art(mpv_handle *mpv, char *path)
 {
     gchar *dirname = g_path_get_dirname(path), *out = NULL;
@@ -377,11 +380,6 @@ static gchar *try_get_local_art(mpv_handle *mpv, char *path)
     g_free(dirname);
     return out;
 }
-
-static const char *youtube_url_pattern =
-    "^https?:\\/\\/(?:youtu.be\\/|(?:www\\.)?youtube\\.com\\/watch\\?v=)(?<id>[a-zA-Z0-9_-]*)\\??.*";
-
-static GRegex *youtube_url_regex;
 
 static gchar *try_get_youtube_thumbnail(char *path)
 {
