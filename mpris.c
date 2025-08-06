@@ -32,22 +32,54 @@
 #define CACHE_MAX_AGE_DAYS 15 
 #define SECONDS_PER_DAY 24 * 60 * 60
 
-// Copied from https://github.com/videolan/vlc/blob/master/modules/meta_engine/folder.c
-static const char art_files[][20] = {
-    "Folder.jpg", /* Windows */
-    "Folder.png",
-    "AlbumArtSmall.jpg", /* Windows */
-    "AlbumArt.jpg",      /* Windows */
-    "Album.jpg",
-    ".folder.png", /* KDE?    */
-    "cover.jpg",   /* rockbox */
-    "cover.png",
-    "cover.gif",
-    "front.jpg",
-    "front.png",
-    "front.gif",
-    "front.bmp",
-    "thumb.jpg",
+static const char art_files[][32] = {
+    // Windows standard
+    "Folder.jpg", "Folder.png", "Folder.gif", "Folder.webp",
+    "AlbumArtSmall.jpg", "AlbumArt.jpg", "AlbumArt.png",
+    
+    // Common album art names
+    "Album.jpg", "Album.png", "Album.gif", "Album.webp",
+    "cover.jpg", "cover.png", "cover.gif", "cover.webp", "cover.bmp",
+    "Cover.jpg", "Cover.png", "Cover.gif", "Cover.webp", "Cover.bmp",
+    "COVER.JPG", "COVER.PNG", "COVER.GIF", "COVER.WEBP", "COVER.BMP",
+    
+    // Front cover variations
+    "front.jpg", "front.png", "front.gif", "front.webp", "front.bmp",
+    "Front.jpg", "Front.png", "Front.gif", "Front.webp", "Front.bmp",
+    "FRONT.JPG", "FRONT.PNG", "FRONT.GIF", "FRONT.WEBP", "FRONT.BMP",
+    
+    // Artwork variations
+    "artwork.jpg", "artwork.png", "artwork.gif", "artwork.webp",
+    "Artwork.jpg", "Artwork.png", "Artwork.gif", "Artwork.webp",
+    
+    // Thumbnail variations
+    "thumb.jpg", "thumb.png", "thumb.gif", "thumb.webp",
+    "Thumb.jpg", "Thumb.png", "Thumb.gif", "Thumb.webp",
+    "thumbnail.jpg", "thumbnail.png", "thumbnail.gif", "thumbnail.webp",
+    
+    // Other common names
+    "albumart.jpg", "albumart.png", "albumcover.jpg", "albumcover.png",
+    "cd.jpg", "cd.png", "disc.jpg", "disc.png",
+    "music.jpg", "music.png", "audio.jpg", "audio.png",
+    
+    // KDE and other desktop environments
+    ".folder.png", ".folder.jpg", ".cover.jpg", ".cover.png",
+    
+    // Case variations for case-sensitive filesystems
+    "folder.jpg", "folder.png", "folder.gif", "folder.webp",
+    
+    // High resolution variants
+    "cover-large.jpg", "cover-large.png", "cover-hq.jpg", "cover-hq.png",
+    "front-large.jpg", "front-large.png", "front-hq.jpg", "front-hq.png",
+    
+    // Specific media player conventions
+    "AlbumArt_{*}_Large.jpg", "AlbumArt_{*}_Small.jpg", // Windows Media Player
+    
+    // International variations
+    "portada.jpg", "portada.png", // Spanish
+    "caratula.jpg", "caratula.png", // Spanish
+    "capa.jpg", "capa.png", // Portuguese
+    "pochette.jpg", "pochette.png", // French
 };
 
 typedef struct UserData
@@ -73,8 +105,6 @@ typedef struct UserData
     char *cached_path;      // owned by mpv
     gchar *cached_art_url;  // owned by glib
 } UserData;
-
-static const int art_files_count = sizeof(art_files) / sizeof(art_files[0]);
 
 static const char *STATUS_PLAYING = "Playing";
 static const char *STATUS_PAUSED = "Paused";
@@ -149,7 +179,44 @@ static const char *introspection_xml =
     "</node>\n";
 
 static const char* supported_extensions[] = {
-    ".jpg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".avif", ".heic", ".ico"
+    // Common formats
+    ".jpg", ".jpeg", ".jpe", ".jfif", ".jfi",
+    ".png", ".gif", ".webp", ".bmp", ".dib",
+    ".tiff", ".tif", ".avif", ".heic", ".heif",
+    ".ico", ".cur",
+    
+    // RAW camera formats
+    ".cr2", ".crw", ".nef", ".nrw", ".arw", ".srf", ".sr2",
+    ".orf", ".rw2", ".pef", ".ptx", ".dng", ".raf", ".mrw",
+    ".dcr", ".kdc", ".erf", ".3fr", ".mef", ".mos", ".x3f",
+    
+    // Professional/specialized formats
+    ".psd", ".psb",           // Adobe Photoshop
+    ".xcf",                   // GIMP
+    ".exr", ".hdr", ".pic",   // High Dynamic Range
+    ".dpx", ".cin",           // Digital cinema
+    ".sgi", ".rgb", ".bw",    // SGI formats
+    ".sun", ".ras",           // Sun raster
+    ".pnm", ".pbm", ".pgm", ".ppm", ".pam", // Netpbm formats
+    ".pfm",                   // Portable float map
+    ".pcx",                   // PC Paintbrush
+    ".tga", ".icb", ".vda", ".vst", // Targa formats
+    ".jp2", ".j2k", ".jpf", ".jpx", ".jpm", ".mj2", // JPEG 2000
+    ".jxr", ".wdp", ".hdp",   // JPEG XR / HD Photo
+    ".jxl",                   // JPEG XL
+    
+    // Vector formats (if supported)
+    ".svg", ".svgz",
+    
+    // Animation formats
+    ".apng", ".mng",
+    
+    // Less common formats
+    ".xbm", ".xpm",           // X11 bitmap/pixmap
+    ".wbmp",                  // Wireless bitmap
+    ".fits", ".fit", ".fts",  // Flexible Image Transport System
+    ".flif",                  // Free Lossless Image Format
+    ".qoi",                   // Quite OK Image format
 };
 
 static gboolean is_supported_image_file(const char *filename) {
@@ -159,6 +226,34 @@ static gboolean is_supported_image_file(const char *filename) {
         }
     }
     return FALSE;
+}
+
+static gboolean is_art_file(const char *filename) {
+    const int art_files_count = sizeof(art_files) / sizeof(art_files[0]);
+    
+    for (int i = 0; i < art_files_count; i++) {
+        // Simple string comparison for exact matches
+        if (g_strcmp0(filename, art_files[i]) == 0) {
+            return TRUE;
+        }
+        
+        // Handle wildcard patterns (basic implementation)
+        if (strstr(art_files[i], "{*}") != NULL) {
+            // Extract prefix and suffix for pattern matching
+            gchar **parts = g_strsplit(art_files[i], "{*}", 2);
+            if (parts[0] && parts[1]) {
+                if (g_str_has_prefix(filename, parts[0]) && 
+                    g_str_has_suffix(filename, parts[1])) {
+                    g_strfreev(parts);
+                    return TRUE;
+                }
+            }
+            g_strfreev(parts);
+        }
+    }
+    
+    // Also check if it's a supported image file in the same directory
+    return is_supported_image_file(filename);
 }
 
 static gchar *string_to_utf8(gchar *maybe_utf8)
@@ -352,44 +447,189 @@ static const char* get_image_extension(const uint8_t *data, size_t size) {
         if (memcmp(brand, "heic", 4) == 0 || 
             memcmp(brand, "heix", 4) == 0 ||
             memcmp(brand, "hevc", 4) == 0 ||
-            memcmp(brand, "hevx", 4) == 0) {
+            memcmp(brand, "hevx", 4) == 0 ||
+            memcmp(brand, "heim", 4) == 0 ||
+            memcmp(brand, "heis", 4) == 0 ||
+            memcmp(brand, "hevm", 4) == 0 ||
+            memcmp(brand, "hevs", 4) == 0 ||
+            memcmp(brand, "mif1", 4) == 0 ||
+            memcmp(brand, "msf1", 4) == 0) {
             return ".heic";
         }
     }
 
-    // ICO - 00 00 01 00
+    // ICO - 00 00 01 00 (icon) or 00 00 02 00 (cursor)
     if (size >= 4 && data[0] == 0x00 && data[1] == 0x00 && 
-        data[2] == 0x01 && data[3] == 0x00) {
-        return ".ico";
+        (data[2] == 0x01 || data[2] == 0x02) && data[3] == 0x00) {
+        return data[2] == 0x01 ? ".ico" : ".cur";
+    }
+
+    // PSD - 38 42 50 53
+    if (size >= 4 && memcmp(data, "8BPS", 4) == 0) {
+        return ".psd";
+    }
+
+    // GIMP XCF - gimp xcf (with version info)
+    if (size >= 9 && memcmp(data, "gimp xcf ", 9) == 0) {
+        return ".xcf";
+    }
+
+    // OpenEXR - 76 2F 31 01
+    if (size >= 4 && memcmp(data, "\x76\x2f\x31\x01", 4) == 0) {
+        return ".exr";
+    }
+
+    // Radiance HDR - #?RADIANCE or #?RGBE
+    if (size >= 10 && (memcmp(data, "#?RADIANCE", 10) == 0 || 
+                       memcmp(data, "#?RGBE", 6) == 0)) {
+        return ".hdr";
+    }
+
+    // JPEG 2000 - 00 00 00 0C 6A 50 20 20
+    if (size >= 8 && memcmp(data, "\x00\x00\x00\x0c\x6a\x50\x20\x20", 8) == 0) {
+        return ".jp2";
+    }
+
+    // JPEG 2000 codestream - FF 4F FF 51
+    if (size >= 4 && memcmp(data, "\xff\x4f\xff\x51", 4) == 0) {
+        return ".j2k";
+    }
+
+    // JPEG XL - FF 0A or 00 00 00 0C 4A 58 4C 20
+    if (size >= 2 && memcmp(data, "\xff\x0a", 2) == 0) {
+        return ".jxl";
+    }
+    if (size >= 12 && memcmp(data, "\x00\x00\x00\x0c\x4a\x58\x4c\x20\x0d\x0a\x87\x0a", 12) == 0) {
+        return ".jxl";
+    }
+
+    // JPEG XR - II BC (little endian) or MM BC (big endian)
+    if (size >= 2 && ((data[0] == 0x49 && data[1] == 0x49) || (data[0] == 0x4D && data[1] == 0x4D))) {
+        // Check for JPEG XR specific markers
+        if (size >= 4 && data[2] == 0xBC && (data[3] == 0x00 || data[3] == 0x01)) {
+            return ".jxr";
+        }
+    }
+
+    // TGA - check footer signature (TRUEVISION-XFILE.)
+    if (size >= 26) {
+        const char *footer_sig = "TRUEVISION-XFILE.";
+        if (memcmp(data + size - 18, footer_sig, 18) == 0) {
+            return ".tga";
+        }
+    }
+    // TGA - heuristic check for headerless TGA (very basic)
+    if (size >= 18 && data[1] <= 1 && (data[2] == 1 || data[2] == 2 || data[2] == 3 || 
+                                        data[2] == 9 || data[2] == 10 || data[2] == 11)) {
+        return ".tga";
+    }
+
+    // PCX - 0A XX 01
+    if (size >= 3 && data[0] == 0x0A && data[2] == 0x01) {
+        return ".pcx";
+    }
+
+    // SVG - check for XML declaration and svg tag
+    if (size >= 5 && (memcmp(data, "<?xml", 5) == 0 || memcmp(data, "<svg", 4) == 0)) {
+        // Look for svg tag within first 1000 bytes
+        size_t search_len = size > 1000 ? 1000 : size;
+        for (size_t i = 0; i < search_len - 3; i++) {
+            if (memcmp(data + i, "<svg", 4) == 0) {
+                return ".svg";
+            }
+        }
+    }
+
+    // PNM family
+    if (size >= 2 && data[0] == 'P') {
+        switch (data[1]) {
+            case '1': case '4': return ".pbm";  // Portable bitmap
+            case '2': case '5': return ".pgm";  // Portable graymap
+            case '3': case '6': return ".ppm";  // Portable pixmap
+            case '7': return ".pam";            // Portable arbitrary map
+        }
+    }
+
+    // XBM - #define
+    if (size >= 7 && memcmp(data, "#define", 7) == 0) {
+        return ".xbm";
+    }
+
+    // XPM - /* XPM */
+    if (size >= 9 && memcmp(data, "/* XPM */", 9) == 0) {
+        return ".xpm";
+    }
+
+    // FITS - SIMPLE
+    if (size >= 6 && memcmp(data, "SIMPLE", 6) == 0) {
+        return ".fits";
+    }
+
+    // FLIF - FLIF
+    if (size >= 4 && memcmp(data, "FLIF", 4) == 0) {
+        return ".flif";
+    }
+
+    // QOI - qoif
+    if (size >= 4 && memcmp(data, "qoif", 4) == 0) {
+        return ".qoi";
+    }
+
+    // WBMP - 00 00 (followed by width and height)
+    if (size >= 4 && data[0] == 0x00 && data[1] == 0x00) {
+        return ".wbmp";
     }
 
     // Default fallback - JPEG is most common for embedded album art
     return ".jpg";
 }
 
-static gchar *try_get_local_art(mpv_handle *mpv, char *path)
-{
-    gchar *dirname = g_path_get_dirname(path), *out = NULL;
+// Enhanced local art search that scans directory for any image files
+static gchar *try_get_local_art_enhanced(mpv_handle *mpv, char *path) {
+    gchar *dirname = g_path_get_dirname(path);
+    gchar *out = NULL;
     gboolean found = FALSE;
-
-    for (int i = 0; i < art_files_count; i++)
-    {
+    
+    // Calculate art_files_count locally instead of using the global variable
+    const int local_art_files_count = sizeof(art_files) / sizeof(art_files[0]);
+    
+    // First, try the predefined art file names
+    for (int i = 0; i < local_art_files_count && !found; i++) {
+        // Skip wildcard patterns for now
+        if (strstr(art_files[i], "{*}") != NULL) {
+            continue;
+        }
+        
         gchar *filename = g_build_filename(dirname, art_files[i], NULL);
-
-        if (g_file_test(filename, G_FILE_TEST_EXISTS))
-        {
+        
+        if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
             out = path_to_uri(mpv, filename);
             found = TRUE;
         }
-
+        
         g_free(filename);
-
-        if (found)
-        {
-            break;
+    }
+    
+    // If no predefined art files found, scan directory for any image files
+    if (!found) {
+        GDir *dir = g_dir_open(dirname, 0, NULL);
+        if (dir) {
+            const gchar *filename;
+            while ((filename = g_dir_read_name(dir)) != NULL && !found) {
+                // Use is_art_file function here to make it used
+                if (is_art_file(filename)) {
+                    gchar *full_path = g_build_filename(dirname, filename, NULL);
+                    if (g_file_test(full_path, G_FILE_TEST_IS_REGULAR)) {
+                        out = path_to_uri(mpv, full_path);
+                        found = TRUE;
+                    }
+                    g_free(full_path);
+                }
+            }
+            g_dir_close(dir);
         }
     }
-
+    
     g_free(dirname);
     return out;
 }
@@ -581,7 +821,7 @@ static void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud)
         } else {
             ud->cached_art_url = try_get_embedded_art(path);
             if (!ud->cached_art_url) {
-                ud->cached_art_url = try_get_local_art(mpv, path);
+                ud->cached_art_url = try_get_local_art_enhanced(mpv, path);
             }
         }
     } else {
@@ -1437,8 +1677,23 @@ int mpv_open_cplugin(mpv_handle *mpv)
     GSource *mpv_pipe_source;
     GSource *timeout_source;
 
+    if (!mpv) {
+        g_printerr("MPV handle is NULL\n");
+        return -1;
+    }
+
     ctx = g_main_context_new();
+    if (!ctx) {
+        g_printerr("Failed to create main context\n");
+        return -1;
+    }
+
     loop = g_main_loop_new(ctx, FALSE);
+    if (!loop) {
+        g_printerr("Failed to create main loop\n");
+        g_main_context_unref(ctx);
+        return -1;
+    }
 
     // Load introspection data and split into separate interfaces
     introspection_data = g_dbus_node_info_new_for_xml(introspection_xml, &error);
