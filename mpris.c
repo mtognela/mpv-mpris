@@ -693,8 +693,7 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
 
         g_dbus_method_invocation_return_value(invocation, NULL);
 
-    }
- else if (g_strcmp0(method_name, "OpenUri") == 0) {
+} else if (g_strcmp0(method_name, "OpenUri") == 0) {
         char *uri;
         g_variant_get(parameters, "(&s)", &uri);
         const char *cmd[] = {"loadfile", uri, NULL};
