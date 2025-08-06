@@ -20,7 +20,7 @@
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
-*/ 
+*/
 
 #include <gio/gio.h>
 #include <glib-unix.h>
@@ -122,9 +122,12 @@ static gchar *string_to_utf8(gchar *maybe_utf8)
     gchar *attempted_validation;
     attempted_validation = g_utf8_make_valid(maybe_utf8, -1);
 
-    if (g_utf8_validate(attempted_validation, -1, NULL)) {
+    if (g_utf8_validate(attempted_validation, -1, NULL))
+    {
         return attempted_validation;
-    } else {
+    }
+    else
+    {
         g_free(attempted_validation);
         return g_strdup("<invalid utf8>");
     }
@@ -134,7 +137,8 @@ static void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
                                      const char *property, const char *tag)
 {
     char *temp = mpv_get_property_string(mpv, property);
-    if (temp) {
+    if (temp)
+    {
         char *utf8 = string_to_utf8(temp);
         g_variant_dict_insert(dict, tag, "s", utf8);
         g_free(utf8);
@@ -147,7 +151,8 @@ static void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
 {
     int64_t value;
     int res = mpv_get_property(mpv, property, MPV_FORMAT_INT64, &value);
-    if (res >= 0) {
+    if (res >= 0)
+    {
         g_variant_dict_insert(dict, tag, "x", value);
     }
 }
@@ -157,13 +162,15 @@ static void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
 {
     char *temp = mpv_get_property_string(mpv, property);
 
-    if (temp) {
+    if (temp)
+    {
         GVariantBuilder builder;
         char **list = g_strsplit(temp, ", ", 0);
         char **iter = list;
         g_variant_builder_init(&builder, G_VARIANT_TYPE("as"));
 
-        for (; *iter; iter++) {
+        for (; *iter; iter++)
+        {
             char *item = *iter;
             char *utf8 = string_to_utf8(item);
             g_variant_builder_add(&builder, "s", utf8);
@@ -182,8 +189,8 @@ static gchar *path_to_uri(mpv_handle *mpv, char *path)
 #if GLIB_CHECK_VERSION(2, 58, 0)
     // version which uses g_canonicalize_filename which expands .. and .
     // and makes the uris neater
-    char* working_dir;
-    gchar* canonical;
+    char *working_dir;
+    gchar *canonical;
     gchar *uri;
 
     working_dir = mpv_get_property_string(mpv, "working-directory");
@@ -197,11 +204,14 @@ static gchar *path_to_uri(mpv_handle *mpv, char *path)
 #else
     // for compatibility with older versions of glib
     gchar *converted;
-    if (g_path_is_absolute(path)) {
+    if (g_path_is_absolute(path))
+    {
         converted = g_filename_to_uri(path, NULL, NULL);
-    } else {
-        char* working_dir;
-        gchar* absolute;
+    }
+    else
+    {
+        char *working_dir;
+        gchar *absolute;
 
         working_dir = mpv_get_property_string(mpv, "working-directory");
         absolute = g_build_filename(working_dir, path, NULL);
@@ -221,15 +231,19 @@ static void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
     char *uri;
 
     path = mpv_get_property_string(mpv, "path");
-    if (!path) {
+    if (!path)
+    {
         return;
     }
 
     uri = g_uri_parse_scheme(path);
-    if (uri) {
+    if (uri)
+    {
         g_variant_dict_insert(dict, "xesam:url", "s", path);
         g_free(uri);
-    } else {
+    }
+    else
+    {
         gchar *converted = path_to_uri(mpv, path);
         g_variant_dict_insert(dict, "xesam:url", "s", converted);
         g_free(converted);
@@ -240,13 +254,13 @@ static void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
 
 // Copied from https://github.com/videolan/vlc/blob/master/modules/meta_engine/folder.c
 static const char art_files[][20] = {
-    "Folder.jpg",           /* Windows */
+    "Folder.jpg", /* Windows */
     "Folder.png",
-    "AlbumArtSmall.jpg",    /* Windows */
-    "AlbumArt.jpg",         /* Windows */
+    "AlbumArtSmall.jpg", /* Windows */
+    "AlbumArt.jpg",      /* Windows */
     "Album.jpg",
-    ".folder.png",          /* KDE?    */
-    "cover.jpg",            /* rockbox */
+    ".folder.png", /* KDE?    */
+    "cover.jpg",   /* rockbox */
     "cover.png",
     "cover.gif",
     "front.jpg",
@@ -258,22 +272,25 @@ static const char art_files[][20] = {
 
 static const int art_files_count = sizeof(art_files) / sizeof(art_files[0]);
 
-static gchar* try_get_local_art(mpv_handle *mpv, char *path)
+static gchar *try_get_local_art(mpv_handle *mpv, char *path)
 {
     gchar *dirname = g_path_get_dirname(path), *out = NULL;
     gboolean found = FALSE;
 
-    for (int i = 0; i < art_files_count; i++) {
+    for (int i = 0; i < art_files_count; i++)
+    {
         gchar *filename = g_build_filename(dirname, art_files[i], NULL);
 
-        if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+        if (g_file_test(filename, G_FILE_TEST_EXISTS))
+        {
             out = path_to_uri(mpv, filename);
             found = TRUE;
         }
 
         g_free(filename);
 
-        if (found) {
+        if (found)
+        {
             break;
         }
     }
@@ -287,20 +304,22 @@ static const char *youtube_url_pattern =
 
 static GRegex *youtube_url_regex;
 
-static gchar* try_get_youtube_thumbnail(char *path)
+static gchar *try_get_youtube_thumbnail(char *path)
 {
     gchar *out = NULL;
-    if (!youtube_url_regex) {
+    if (!youtube_url_regex)
+    {
         youtube_url_regex = g_regex_new(youtube_url_pattern, 0, 0, NULL);
     }
 
     GMatchInfo *match_info;
     gboolean matched = g_regex_match(youtube_url_regex, path, 0, &match_info);
 
-    if (matched) {
+    if (matched)
+    {
         gchar *video_id = g_match_info_fetch_named(match_info, "id");
         out = g_strconcat("https://i1.ytimg.com/vi/",
-                                           video_id, "/hqdefault.jpg", NULL);
+                          video_id, "/hqdefault.jpg", NULL);
         g_free(video_id);
     }
 
@@ -308,54 +327,64 @@ static gchar* try_get_youtube_thumbnail(char *path)
     return out;
 }
 
-static gchar* get_cache_dir() {
+static gchar *get_cache_dir()
+{
     gchar *cache_dir = g_build_filename(g_get_user_cache_dir(), "mpv-mpris", "coverart", NULL);
-    
-    if (g_mkdir_with_parents(cache_dir, 0755) < 0) {
+
+    if (g_mkdir_with_parents(cache_dir, 0755) < 0)
+    {
         g_warning("Failed to create cache directory: %s", g_strerror(errno));
         g_free(cache_dir);
         return NULL;
     }
-    
+
     return cache_dir;
 }
 
-static gchar* generate_cache_filename(const char *path) {
+static gchar *generate_cache_filename(const char *path)
+{
     gchar *hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256, path, -1);
     gchar *filename = g_strconcat(hash, ".jpg", NULL);
     g_free(hash);
     return filename;
 }
 
-static gchar* extract_embedded_art(AVFormatContext *context, const char *media_path) {
+static gchar *extract_embedded_art(AVFormatContext *context, const char *media_path)
+{
     AVPacket *packet = NULL;
     gchar *cache_path = NULL;
     gchar *uri = NULL;
-    
-    for (unsigned int i = 0; i < context->nb_streams; i++) {
-        if (context->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+
+    for (unsigned int i = 0; i < context->nb_streams; i++)
+    {
+        if (context->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC)
+        {
             packet = &context->streams[i]->attached_pic;
             break;
         }
     }
-    
-    if (!packet) {
+
+    if (!packet)
+    {
         return NULL;
     }
 
     gchar *cache_dir = get_cache_dir();
-    if (!cache_dir) {
+    if (!cache_dir)
+    {
         return NULL;
     }
 
     gchar *cache_filename = generate_cache_filename(media_path);
     cache_path = g_build_filename(cache_dir, cache_filename, NULL);
     g_free(cache_filename);
-    
-    if (!g_file_test(cache_path, G_FILE_TEST_EXISTS)) {
+
+    if (!g_file_test(cache_path, G_FILE_TEST_EXISTS))
+    {
         GError *error = NULL;
-        if (!g_file_set_contents(cache_path, (const gchar*)packet->data, 
-                                packet->size, &error)) {
+        if (!g_file_set_contents(cache_path, (const gchar *)packet->data,
+                                 packet->size, &error))
+        {
             g_warning("Failed to write cover art to cache: %s", error->message);
             g_error_free(error);
             g_free(cache_path);
@@ -365,18 +394,19 @@ static gchar* extract_embedded_art(AVFormatContext *context, const char *media_p
     }
 
     uri = g_filename_to_uri(cache_path, NULL, NULL);
-    
+
     g_free(cache_path);
     g_free(cache_dir);
     return uri;
 }
 
-static gchar* try_get_embedded_art(char *path)
+static gchar *try_get_embedded_art(char *path)
 {
     gchar *uri = NULL;
     AVFormatContext *context = NULL;
-    
-    if (!avformat_open_input(&context, path, NULL, NULL)) {
+
+    if (!avformat_open_input(&context, path, NULL, NULL))
+    {
         uri = extract_embedded_art(context, path);
         avformat_close_input(&context);
     }
@@ -394,29 +424,38 @@ static void add_metadata_art(mpv_handle *mpv, GVariantDict *dict)
 {
     char *path = mpv_get_property_string(mpv, "path");
 
-    if (!path) {
+    if (!path)
+    {
         return;
     }
 
     // mpv may call create_metadata multiple times, so cache to save CPU
-    if (!cached_path || strcmp(path, cached_path)) {
+    if (!cached_path || strcmp(path, cached_path))
+    {
         mpv_free(cached_path);
         g_free(cached_art_url);
         cached_path = path;
 
-        if (g_str_has_prefix(path, "http")) {
+        if (g_str_has_prefix(path, "http"))
+        {
             cached_art_url = try_get_youtube_thumbnail(path);
-        } else {
+        }
+        else
+        {
             cached_art_url = try_get_embedded_art(path);
-            if (!cached_art_url) {
+            if (!cached_art_url)
+            {
                 cached_art_url = try_get_local_art(mpv, path);
             }
         }
-    } else {
+    }
+    else
+    {
         mpv_free(path);
     }
 
-    if (cached_art_url) {
+    if (cached_art_url)
+    {
         g_variant_dict_insert(dict, "mpris:artUrl", "s", cached_art_url);
     }
 }
@@ -425,21 +464,27 @@ static void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict)
 {
     char *date_str = mpv_get_property_string(mpv, "metadata/by-key/Date");
 
-    if (!date_str) {
+    if (!date_str)
+    {
         return;
     }
 
-    GDate* date = g_date_new();
-    if (strlen(date_str) == 4) {
+    GDate *date = g_date_new();
+    if (strlen(date_str) == 4)
+    {
         gint64 year = g_ascii_strtoll(date_str, NULL, 10);
-        if (year != 0) {
+        if (year != 0)
+        {
             g_date_set_dmy(date, 1, 1, year);
         }
-    } else {
+    }
+    else
+    {
         g_date_set_parse(date, date_str);
     }
 
-    if (g_date_valid(date)) {
+    if (g_date_valid(date))
+    {
         gchar iso8601[20];
         g_date_strftime(iso8601, 20, "%Y-%m-%dT00:00:00Z", date);
         g_variant_dict_insert(dict, "xesam:contentCreated", "s", iso8601);
@@ -462,9 +507,12 @@ static GVariant *create_metadata(UserData *ud)
     // mpris:trackid
     mpv_get_property(ud->mpv, "playlist-pos", MPV_FORMAT_INT64, &track);
     // playlist-pos < 0 if there is no playlist or current track
-    if (track < 0) {
+    if (track < 0)
+    {
         temp_str = g_strdup("/noplaylist");
-    } else {
+    }
+    else
+    {
         temp_str = g_strdup_printf("/%" PRId64, track);
     }
     g_variant_dict_insert(&dict, "mpris:trackid", "o", temp_str);
@@ -472,7 +520,8 @@ static GVariant *create_metadata(UserData *ud)
 
     // mpris:length
     res = mpv_get_property(ud->mpv, "duration", MPV_FORMAT_DOUBLE, &duration);
-    if (res == MPV_ERROR_SUCCESS) {
+    if (res == MPV_ERROR_SUCCESS)
+    {
         g_variant_dict_insert(&dict, "mpris:length", "x", (int64_t)(duration * 1000000.0));
     }
 
@@ -526,17 +575,20 @@ static void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
                              GDBusMethodInvocation *invocation,
                              gpointer user_data)
 {
-    UserData *ud = (UserData*)user_data;
-    if (g_strcmp0(method_name, "Quit") == 0) {
+    UserData *ud = (UserData *)user_data;
+    if (g_strcmp0(method_name, "Quit") == 0)
+    {
         const char *cmd[] = {"quit", NULL};
         mpv_command_async(ud->mpv, 0, cmd);
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else if (g_strcmp0(method_name, "Raise") == 0) {
+    }
+    else if (g_strcmp0(method_name, "Raise") == 0)
+    {
         // Can't raise
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else {
+    }
+    else
+    {
         g_dbus_method_invocation_return_error(invocation, G_DBUS_ERROR,
                                               G_DBUS_ERROR_UNKNOWN_METHOD,
                                               "Unknown method");
@@ -551,35 +603,43 @@ static GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
                                    G_GNUC_UNUSED GError **error,
                                    gpointer user_data)
 {
-    UserData *ud = (UserData*)user_data;
+    UserData *ud = (UserData *)user_data;
     GVariant *ret;
 
-    if (g_strcmp0(property_name, "CanQuit") == 0) {
+    if (g_strcmp0(property_name, "CanQuit") == 0)
+    {
         ret = g_variant_new_boolean(TRUE);
-
-    } else if (g_strcmp0(property_name, "Fullscreen") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Fullscreen") == 0)
+    {
         int fullscreen;
         mpv_get_property(ud->mpv, "fullscreen", MPV_FORMAT_FLAG, &fullscreen);
         ret = g_variant_new_boolean(fullscreen);
-
-    } else if (g_strcmp0(property_name, "CanSetFullscreen") == 0) {
+    }
+    else if (g_strcmp0(property_name, "CanSetFullscreen") == 0)
+    {
         int can_fullscreen;
         mpv_get_property(ud->mpv, "vo-configured", MPV_FORMAT_FLAG, &can_fullscreen);
         ret = g_variant_new_boolean(can_fullscreen);
-
-    } else if (g_strcmp0(property_name, "CanRaise") == 0) {
+    }
+    else if (g_strcmp0(property_name, "CanRaise") == 0)
+    {
         ret = g_variant_new_boolean(FALSE);
-
-    } else if (g_strcmp0(property_name, "HasTrackList") == 0) {
+    }
+    else if (g_strcmp0(property_name, "HasTrackList") == 0)
+    {
         ret = g_variant_new_boolean(FALSE);
-
-    } else if (g_strcmp0(property_name, "Identity") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Identity") == 0)
+    {
         ret = g_variant_new_string("mpv");
-
-    } else if (g_strcmp0(property_name, "DesktopEntry") == 0) {
+    }
+    else if (g_strcmp0(property_name, "DesktopEntry") == 0)
+    {
         ret = g_variant_new_string("mpv");
-
-    } else if (g_strcmp0(property_name, "SupportedUriSchemes") == 0) {
+    }
+    else if (g_strcmp0(property_name, "SupportedUriSchemes") == 0)
+    {
         GVariantBuilder builder;
         g_variant_builder_init(&builder, G_VARIANT_TYPE("as"));
         g_variant_builder_add(&builder, "s", "ftp");
@@ -591,16 +651,18 @@ static GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
         g_variant_builder_add(&builder, "s", "sftp");
         g_variant_builder_add(&builder, "s", "smb");
         ret = g_variant_builder_end(&builder);
-
-    } else if (g_strcmp0(property_name, "SupportedMimeTypes") == 0) {
+    }
+    else if (g_strcmp0(property_name, "SupportedMimeTypes") == 0)
+    {
         GVariantBuilder builder;
         g_variant_builder_init(&builder, G_VARIANT_TYPE("as"));
         g_variant_builder_add(&builder, "s", "application/ogg");
         g_variant_builder_add(&builder, "s", "audio/mpeg");
         // TODO add the rest
         ret = g_variant_builder_end(&builder);
-
-    } else {
+    }
+    else
+    {
         ret = NULL;
         g_set_error(error, G_DBUS_ERROR,
                     G_DBUS_ERROR_UNKNOWN_PROPERTY,
@@ -619,13 +681,15 @@ static gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
                                   G_GNUC_UNUSED GError **error,
                                   gpointer user_data)
 {
-    UserData *ud = (UserData*)user_data;
-    if (g_strcmp0(property_name, "Fullscreen") == 0) {
+    UserData *ud = (UserData *)user_data;
+    if (g_strcmp0(property_name, "Fullscreen") == 0)
+    {
         int fullscreen;
         g_variant_get(value, "b", &fullscreen);
         mpv_set_property(ud->mpv, "fullscreen", MPV_FORMAT_FLAG, &fullscreen);
-
-    } else {
+    }
+    else
+    {
         g_set_error(error, G_DBUS_ERROR,
                     G_DBUS_ERROR_UNKNOWN_PROPERTY,
                     "Cannot set property %s", property_name);
@@ -635,8 +699,7 @@ static gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
 }
 
 static GDBusInterfaceVTable vtable_root = {
-    method_call_root, get_property_root, set_property_root, {0}
-};
+    method_call_root, get_property_root, set_property_root, {0}};
 
 static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
                                G_GNUC_UNUSED const char *sender,
@@ -647,43 +710,53 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
                                GDBusMethodInvocation *invocation,
                                gpointer user_data)
 {
-    UserData *ud = (UserData*)user_data;
-    if (g_strcmp0(method_name, "Pause") == 0) {
+    UserData *ud = (UserData *)user_data;
+    if (g_strcmp0(method_name, "Pause") == 0)
+    {
         int paused = TRUE;
         mpv_set_property(ud->mpv, "pause", MPV_FORMAT_FLAG, &paused);
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else if (g_strcmp0(method_name, "PlayPause") == 0) {
+    }
+    else if (g_strcmp0(method_name, "PlayPause") == 0)
+    {
         int paused;
-        if (ud->status == STATUS_PAUSED) {
+        if (ud->status == STATUS_PAUSED)
+        {
             paused = FALSE;
-        } else {
+        }
+        else
+        {
             paused = TRUE;
         }
         mpv_set_property(ud->mpv, "pause", MPV_FORMAT_FLAG, &paused);
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else if (g_strcmp0(method_name, "Play") == 0) {
+    }
+    else if (g_strcmp0(method_name, "Play") == 0)
+    {
         int paused = FALSE;
         mpv_set_property(ud->mpv, "pause", MPV_FORMAT_FLAG, &paused);
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else if (g_strcmp0(method_name, "Stop") == 0) {
+    }
+    else if (g_strcmp0(method_name, "Stop") == 0)
+    {
         const char *cmd[] = {"stop", NULL};
         mpv_command_async(ud->mpv, 0, cmd);
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else if (g_strcmp0(method_name, "Next") == 0) {
+    }
+    else if (g_strcmp0(method_name, "Next") == 0)
+    {
         const char *cmd[] = {"playlist_next", NULL};
         mpv_command_async(ud->mpv, 0, cmd);
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else if (g_strcmp0(method_name, "Previous") == 0) {
+    }
+    else if (g_strcmp0(method_name, "Previous") == 0)
+    {
         const char *cmd[] = {"playlist_prev", NULL};
         mpv_command_async(ud->mpv, 0, cmd);
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else if (g_strcmp0(method_name, "Seek") == 0) {
+    }
+    else if (g_strcmp0(method_name, "Seek") == 0)
+    {
         int64_t offset_us; // in microseconds
         char *offset_str;
         g_variant_get(parameters, "(x)", &offset_us);
@@ -694,8 +767,9 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
         mpv_command_async(ud->mpv, 0, cmd);
         g_dbus_method_invocation_return_value(invocation, NULL);
         g_free(offset_str);
-
-    } else if (g_strcmp0(method_name, "SetPosition") == 0) {
+    }
+    else if (g_strcmp0(method_name, "SetPosition") == 0)
+    {
         int64_t current_id;
         char *object_path;
         double new_position_s;
@@ -705,10 +779,11 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
         g_variant_get(parameters, "(&ox)", &object_path, &new_position_us);
         new_position_s = ((float)new_position_us) / 1000000.0; // us -> s
 
-        if (current_id == g_ascii_strtoll(object_path + 1, NULL, 10)) {
+        if (current_id == g_ascii_strtoll(object_path + 1, NULL, 10))
+        {
             // Use MPV's seek command instead of setting time-pos property
             char *position_str = g_strdup_printf("%.6f", new_position_s);
-            
+
             const char *cmd[] = {"seek", position_str, "absolute", "exact", NULL};
             mpv_command_async(ud->mpv, 0, cmd);
 
@@ -716,15 +791,17 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
         }
 
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-} else if (g_strcmp0(method_name, "OpenUri") == 0) {
+    }
+    else if (g_strcmp0(method_name, "OpenUri") == 0)
+    {
         char *uri;
         g_variant_get(parameters, "(&s)", &uri);
         const char *cmd[] = {"loadfile", uri, NULL};
         mpv_command_async(ud->mpv, 0, cmd);
         g_dbus_method_invocation_return_value(invocation, NULL);
-
-    } else {
+    }
+    else
+    {
         g_dbus_method_invocation_return_error(invocation, G_DBUS_ERROR,
                                               G_DBUS_ERROR_UNKNOWN_METHOD,
                                               "Unknown method");
@@ -739,70 +816,87 @@ static GVariant *get_property_player(G_GNUC_UNUSED GDBusConnection *connection,
                                      GError **error,
                                      gpointer user_data)
 {
-    UserData *ud = (UserData*)user_data;
+    UserData *ud = (UserData *)user_data;
     GVariant *ret;
-    if (g_strcmp0(property_name, "PlaybackStatus") == 0) {
+    if (g_strcmp0(property_name, "PlaybackStatus") == 0)
+    {
         ret = g_variant_new_string(ud->status);
-
-    } else if (g_strcmp0(property_name, "LoopStatus") == 0) {
+    }
+    else if (g_strcmp0(property_name, "LoopStatus") == 0)
+    {
         ret = g_variant_new_string(ud->loop_status);
-
-    } else if (g_strcmp0(property_name, "Rate") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Rate") == 0)
+    {
         double rate;
         mpv_get_property(ud->mpv, "speed", MPV_FORMAT_DOUBLE, &rate);
         ret = g_variant_new_double(rate);
-
-    } else if (g_strcmp0(property_name, "Shuffle") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Shuffle") == 0)
+    {
         int shuffle;
         mpv_get_property(ud->mpv, "shuffle", MPV_FORMAT_FLAG, &shuffle);
         ret = g_variant_new_boolean(shuffle);
-
-    } else if (g_strcmp0(property_name, "Metadata") == 0) {
-        if (!ud->metadata) {
+    }
+    else if (g_strcmp0(property_name, "Metadata") == 0)
+    {
+        if (!ud->metadata)
+        {
             ud->metadata = create_metadata(ud);
         }
         // Increase reference count to prevent it from being freed after returning
         g_variant_ref(ud->metadata);
         ret = ud->metadata;
-
-    } else if (g_strcmp0(property_name, "Volume") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Volume") == 0)
+    {
         double volume;
         mpv_get_property(ud->mpv, "volume", MPV_FORMAT_DOUBLE, &volume);
         volume /= 100;
         ret = g_variant_new_double(volume);
-
-    } else if (g_strcmp0(property_name, "Position") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Position") == 0)
+    {
         double position_s;
         int64_t position_us;
         mpv_get_property(ud->mpv, "time-pos", MPV_FORMAT_DOUBLE, &position_s);
         position_us = position_s * 1000000.0; // s -> us
         ret = g_variant_new_int64(position_us);
-
-    } else if (g_strcmp0(property_name, "MinimumRate") == 0) {
+    }
+    else if (g_strcmp0(property_name, "MinimumRate") == 0)
+    {
         ret = g_variant_new_double(0.01);
-
-    } else if (g_strcmp0(property_name, "MaximumRate") == 0) {
+    }
+    else if (g_strcmp0(property_name, "MaximumRate") == 0)
+    {
         ret = g_variant_new_double(100);
-
-    } else if (g_strcmp0(property_name, "CanGoNext") == 0) {
+    }
+    else if (g_strcmp0(property_name, "CanGoNext") == 0)
+    {
         ret = g_variant_new_boolean(TRUE);
-
-    } else if (g_strcmp0(property_name, "CanGoPrevious") == 0) {
+    }
+    else if (g_strcmp0(property_name, "CanGoPrevious") == 0)
+    {
         ret = g_variant_new_boolean(TRUE);
-
-    } else if (g_strcmp0(property_name, "CanPlay") == 0) {
+    }
+    else if (g_strcmp0(property_name, "CanPlay") == 0)
+    {
         ret = g_variant_new_boolean(TRUE);
-
-    } else if (g_strcmp0(property_name, "CanPause") == 0) {
+    }
+    else if (g_strcmp0(property_name, "CanPause") == 0)
+    {
         ret = g_variant_new_boolean(TRUE);
-
-    } else if (g_strcmp0(property_name, "CanSeek") == 0) {
+    }
+    else if (g_strcmp0(property_name, "CanSeek") == 0)
+    {
         ret = g_variant_new_boolean(TRUE);
-
-    } else if (g_strcmp0(property_name, "CanControl") == 0) {
+    }
+    else if (g_strcmp0(property_name, "CanControl") == 0)
+    {
         ret = g_variant_new_boolean(TRUE);
-
-    } else {
+    }
+    else
+    {
         ret = NULL;
         g_set_error(error, G_DBUS_ERROR,
                     G_DBUS_ERROR_UNKNOWN_PROPERTY,
@@ -821,44 +915,57 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
                                     G_GNUC_UNUSED GError **error,
                                     gpointer user_data)
 {
-    UserData *ud = (UserData*)user_data;
-    if (g_strcmp0(property_name, "LoopStatus") == 0) {
+    UserData *ud = (UserData *)user_data;
+    if (g_strcmp0(property_name, "LoopStatus") == 0)
+    {
         const char *status;
         int t = TRUE;
         int f = FALSE;
         status = g_variant_get_string(value, NULL);
-        if (g_strcmp0(status, "Track") == 0) {
+        if (g_strcmp0(status, "Track") == 0)
+        {
             mpv_set_property(ud->mpv, "loop-file", MPV_FORMAT_FLAG, &t);
             mpv_set_property(ud->mpv, "loop-playlist", MPV_FORMAT_FLAG, &f);
-        } else if (g_strcmp0(status, "Playlist") == 0) {
+        }
+        else if (g_strcmp0(status, "Playlist") == 0)
+        {
             mpv_set_property(ud->mpv, "loop-file", MPV_FORMAT_FLAG, &f);
             mpv_set_property(ud->mpv, "loop-playlist", MPV_FORMAT_FLAG, &t);
-        } else {
+        }
+        else
+        {
             mpv_set_property(ud->mpv, "loop-file", MPV_FORMAT_FLAG, &f);
             mpv_set_property(ud->mpv, "loop-playlist", MPV_FORMAT_FLAG, &f);
         }
-
-    } else if (g_strcmp0(property_name, "Rate") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Rate") == 0)
+    {
         double rate = g_variant_get_double(value);
         mpv_set_property(ud->mpv, "speed", MPV_FORMAT_DOUBLE, &rate);
-
-    } else if (g_strcmp0(property_name, "Shuffle") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Shuffle") == 0)
+    {
         int shuffle = g_variant_get_boolean(value);
-        if (shuffle && !ud->shuffle) {
+        if (shuffle && !ud->shuffle)
+        {
             const char *cmd[] = {"playlist-shuffle", NULL};
             mpv_command_async(ud->mpv, 0, cmd);
-        } else if (!shuffle && ud->shuffle) {
+        }
+        else if (!shuffle && ud->shuffle)
+        {
             const char *cmd[] = {"playlist-unshuffle", NULL};
             mpv_command_async(ud->mpv, 0, cmd);
         }
         mpv_set_property(ud->mpv, "shuffle", MPV_FORMAT_FLAG, &shuffle);
-
-    } else if (g_strcmp0(property_name, "Volume") == 0) {
+    }
+    else if (g_strcmp0(property_name, "Volume") == 0)
+    {
         double volume = g_variant_get_double(value);
         volume *= 100;
         mpv_set_property(ud->mpv, "volume", MPV_FORMAT_DOUBLE, &volume);
-
-    } else {
+    }
+    else
+    {
         g_set_error(error, G_DBUS_ERROR,
                     G_DBUS_ERROR_UNKNOWN_PROPERTY,
                     "Cannot set property %s", property_name);
@@ -869,25 +976,29 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
 }
 
 static GDBusInterfaceVTable vtable_player = {
-    method_call_player, get_property_player, set_property_player, {0}
-};
+    method_call_player, get_property_player, set_property_player, {0}};
 
 static gboolean emit_property_changes(gpointer data)
 {
-    UserData *ud = (UserData*)data;
+    UserData *ud = (UserData *)data;
     GError *error = NULL;
     gpointer prop_name, prop_value;
     GHashTableIter iter;
 
-    if (g_hash_table_size(ud->changed_properties) > 0) {
+    if (g_hash_table_size(ud->changed_properties) > 0)
+    {
         GVariant *params;
         GVariantBuilder *properties = g_variant_builder_new(G_VARIANT_TYPE("a{sv}"));
         GVariantBuilder *invalidated = g_variant_builder_new(G_VARIANT_TYPE("as"));
         g_hash_table_iter_init(&iter, ud->changed_properties);
-        while (g_hash_table_iter_next(&iter, &prop_name, &prop_value)) {
-            if (prop_value) {
+        while (g_hash_table_iter_next(&iter, &prop_name, &prop_value))
+        {
+            if (prop_value)
+            {
                 g_variant_builder_add(properties, "{sv}", prop_name, prop_value);
-            } else {
+            }
+            else
+            {
                 g_variant_builder_add(invalidated, "s", prop_name);
             }
         }
@@ -901,7 +1012,8 @@ static gboolean emit_property_changes(gpointer data)
                                       "org.freedesktop.DBus.Properties",
                                       "PropertiesChanged",
                                       params, &error);
-        if (error != NULL) {
+        if (error != NULL)
+        {
             g_printerr("%s", error->message);
         }
 
@@ -926,18 +1038,24 @@ static void emit_seeked_signal(UserData *ud)
                                   "Seeked",
                                   params, &error);
 
-    if (error != NULL) {
+    if (error != NULL)
+    {
         g_printerr("%s", error->message);
     }
 }
 
-static GVariant * set_playback_status(UserData *ud)
+static GVariant *set_playback_status(UserData *ud)
 {
-    if (ud->idle) {
+    if (ud->idle)
+    {
         ud->status = STATUS_STOPPED;
-    } else if (ud->paused) {
+    }
+    else if (ud->paused)
+    {
         ud->status = STATUS_PAUSED;
-    } else {
+    }
+    else
+    {
         ud->status = STATUS_PLAYING;
     }
     return g_variant_new_string(ud->status);
@@ -945,15 +1063,15 @@ static GVariant * set_playback_status(UserData *ud)
 
 static void set_stopped_status(UserData *ud)
 {
-  const char *prop_name = "PlaybackStatus";
-  GVariant *prop_value = g_variant_new_string(STATUS_STOPPED);
+    const char *prop_name = "PlaybackStatus";
+    GVariant *prop_value = g_variant_new_string(STATUS_STOPPED);
 
-  ud->status = STATUS_STOPPED;
+    ud->status = STATUS_STOPPED;
 
-  g_hash_table_insert(ud->changed_properties,
-                      (gpointer)prop_name, prop_value);
+    g_hash_table_insert(ud->changed_properties,
+                        (gpointer)prop_name, prop_value);
 
-  emit_property_changes(ud);
+    emit_property_changes(ud);
 }
 
 // Register D-Bus object and interfaces
@@ -970,18 +1088,20 @@ static void on_bus_acquired(GDBusConnection *connection,
                                           ud->root_interface_info,
                                           &vtable_root,
                                           user_data, NULL, &error);
-    if (error != NULL) {
+    if (error != NULL)
+    {
         g_printerr("Failed to register root interface: %s\n", error->message);
-        g_error_free(error);  // Free the error
-        error = NULL;         // Reset to NULL
+        g_error_free(error); // Free the error
+        error = NULL;        // Reset to NULL
     }
 
     ud->player_interface_id =
         g_dbus_connection_register_object(connection, "/org/mpris/MediaPlayer2",
-                                        ud->player_interface_info,
-                                        &vtable_player,
-                                        user_data, NULL, &error);
-    if (error != NULL) {
+                                          ud->player_interface_info,
+                                          &vtable_player,
+                                          user_data, NULL, &error);
+    if (error != NULL)
+    {
         g_printerr("Failed to register player interface: %s\n", error->message);
         g_error_free(error);
     }
@@ -991,7 +1111,8 @@ static void on_name_lost(GDBusConnection *connection,
                          G_GNUC_UNUSED const char *_name,
                          gpointer user_data)
 {
-    if (connection) {
+    if (connection)
+    {
         UserData *ud = user_data;
         pid_t pid = getpid();
         char *name = g_strdup_printf("org.mpris.MediaPlayer2.mpv.instance%d", pid);
@@ -1008,86 +1129,109 @@ static void handle_property_change(const char *name, void *data, UserData *ud)
 {
     const char *prop_name = NULL;
     GVariant *prop_value = NULL;
-    if (g_strcmp0(name, "pause") == 0) {
-        ud->paused = *(int*)data;
+    if (g_strcmp0(name, "pause") == 0)
+    {
+        ud->paused = *(int *)data;
         prop_name = "PlaybackStatus";
         prop_value = set_playback_status(ud);
-
-    } else if (g_strcmp0(name, "idle-active") == 0) {
-        ud->idle = *(int*)data;
+    }
+    else if (g_strcmp0(name, "idle-active") == 0)
+    {
+        ud->idle = *(int *)data;
         prop_name = "PlaybackStatus";
         prop_value = set_playback_status(ud);
-
-    } else if (g_strcmp0(name, "media-title") == 0 ||
-               g_strcmp0(name, "duration") == 0) {
+    }
+    else if (g_strcmp0(name, "media-title") == 0 ||
+             g_strcmp0(name, "duration") == 0)
+    {
         // Free existing metadata object
-        if (ud->metadata) {
+        if (ud->metadata)
+        {
             g_variant_unref(ud->metadata);
         }
         ud->metadata = create_metadata(ud);
         prop_name = "Metadata";
         prop_value = ud->metadata;
-
-    } else if (g_strcmp0(name, "speed") == 0) {
+    }
+    else if (g_strcmp0(name, "speed") == 0)
+    {
         double *rate = data;
         prop_name = "Rate";
         prop_value = g_variant_new_double(*rate);
-
-    } else if (g_strcmp0(name, "volume") == 0) {
+    }
+    else if (g_strcmp0(name, "volume") == 0)
+    {
         double *volume = data;
         *volume /= 100;
         prop_name = "Volume";
         prop_value = g_variant_new_double(*volume);
-
-    } else if (g_strcmp0(name, "loop-file") == 0) {
+    }
+    else if (g_strcmp0(name, "loop-file") == 0)
+    {
         char *status = *(char **)data;
-        if (g_strcmp0(status, "no") != 0) {
+        if (g_strcmp0(status, "no") != 0)
+        {
             ud->loop_status = LOOP_TRACK;
-        } else {
+        }
+        else
+        {
             char *playlist_status;
             mpv_get_property(ud->mpv, "loop-playlist", MPV_FORMAT_STRING, &playlist_status);
-            if (g_strcmp0(playlist_status, "no") != 0) {
+            if (g_strcmp0(playlist_status, "no") != 0)
+            {
                 ud->loop_status = LOOP_PLAYLIST;
-            } else {
+            }
+            else
+            {
                 ud->loop_status = LOOP_NONE;
             }
             mpv_free(playlist_status);
         }
         prop_name = "LoopStatus";
         prop_value = g_variant_new_string(ud->loop_status);
-
-    } else if (g_strcmp0(name, "loop-playlist") == 0) {
+    }
+    else if (g_strcmp0(name, "loop-playlist") == 0)
+    {
         char *status = *(char **)data;
-        if (g_strcmp0(status, "no") != 0) {
+        if (g_strcmp0(status, "no") != 0)
+        {
             ud->loop_status = LOOP_PLAYLIST;
-        } else {
+        }
+        else
+        {
             char *file_status;
             mpv_get_property(ud->mpv, "loop-file", MPV_FORMAT_STRING, &file_status);
-            if (g_strcmp0(file_status, "no") != 0) {
+            if (g_strcmp0(file_status, "no") != 0)
+            {
                 ud->loop_status = LOOP_TRACK;
-            } else {
+            }
+            else
+            {
                 ud->loop_status = LOOP_NONE;
             }
             mpv_free(file_status);
         }
         prop_name = "LoopStatus";
         prop_value = g_variant_new_string(ud->loop_status);
-
-    } else if (g_strcmp0(name, "shuffle") == 0) {
-        int shuffle = *(int*)data;
+    }
+    else if (g_strcmp0(name, "shuffle") == 0)
+    {
+        int shuffle = *(int *)data;
         ud->shuffle = shuffle;
         prop_name = "Shuffle";
         prop_value = g_variant_new_boolean(shuffle);
-
-    } else if (g_strcmp0(name, "fullscreen") == 0) {
+    }
+    else if (g_strcmp0(name, "fullscreen") == 0)
+    {
         gboolean *status = data;
         prop_name = "Fullscreen";
         prop_value = g_variant_new_boolean(*status);
-
     }
 
-    if (prop_name) {
-        if (prop_value) {
+    if (prop_name)
+    {
+        if (prop_value)
+        {
             g_variant_ref(prop_value);
         }
         g_hash_table_insert(ud->changed_properties,
@@ -1102,11 +1246,14 @@ static gboolean event_handler(int fd, G_GNUC_UNUSED GIOCondition condition, gpoi
 
     // Discard data in pipe
     char unused[16];
-    while (read(fd, unused, sizeof(unused)) > 0);
+    while (read(fd, unused, sizeof(unused)) > 0)
+        ;
 
-    while (has_event) {
+    while (has_event)
+    {
         mpv_event *event = mpv_wait_event(ud->mpv, 0);
-        switch (event->event_id) {
+        switch (event->event_id)
+        {
         case MPV_EVENT_NONE:
             has_event = FALSE;
             break;
@@ -1114,19 +1261,24 @@ static gboolean event_handler(int fd, G_GNUC_UNUSED GIOCondition condition, gpoi
             set_stopped_status(ud);
             g_main_loop_quit(ud->loop);
             break;
-        case MPV_EVENT_PROPERTY_CHANGE: {
-            mpv_event_property *prop_event = (mpv_event_property*)event->data;
+        case MPV_EVENT_PROPERTY_CHANGE:
+        {
+            mpv_event_property *prop_event = (mpv_event_property *)event->data;
             handle_property_change(prop_event->name, prop_event->data, ud);
-        } break;
+        }
+        break;
         case MPV_EVENT_SEEK:
             ud->seek_expected = TRUE;
             break;
-        case MPV_EVENT_PLAYBACK_RESTART: {
-            if (ud->seek_expected) {
+        case MPV_EVENT_PLAYBACK_RESTART:
+        {
+            if (ud->seek_expected)
+            {
                 emit_seeked_signal(ud);
                 ud->seek_expected = FALSE;
             }
-         } break;
+        }
+        break;
         default:
             break;
         }
@@ -1137,7 +1289,7 @@ static gboolean event_handler(int fd, G_GNUC_UNUSED GIOCondition condition, gpoi
 
 static void wakeup_handler(void *fd)
 {
-    (void)!write(*((int*)fd), "0", 1);
+    (void)!write(*((int *)fd), "0", 1);
 }
 
 // Plugin entry point
@@ -1157,7 +1309,8 @@ int mpv_open_cplugin(mpv_handle *mpv)
 
     // Load introspection data and split into separate interfaces
     introspection_data = g_dbus_node_info_new_for_xml(introspection_xml, &error);
-    if (error != NULL) {
+    if (error != NULL)
+    {
         g_printerr("%s", error->message);
     }
     ud.root_interface_info =
@@ -1199,7 +1352,8 @@ int mpv_open_cplugin(mpv_handle *mpv)
 
     // Run callback whenever there are events
     g_unix_open_pipe(pipe, 0, &error);
-    if (error != NULL) {
+    if (error != NULL)
+    {
         g_printerr("%s", error->message);
     }
     fcntl(pipe[0], F_SETFL, O_NONBLOCK);
