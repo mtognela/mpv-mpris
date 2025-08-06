@@ -11,4 +11,5 @@ mpris.so
 *.stderr.log
 .vscode/
 _temp/
+debug*
 

@@ -30,7 +30,7 @@
 #include <string.h>
 
 #define CACHE_MAX_AGE_DAYS 15 
-#define SECONDS_PER_DAY 24 * 60 * 60
+#define SECONDS_PER_DAY 86400
 
 static const char art_files[][32] = {
     // Windows standard
