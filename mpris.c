@@ -30,7 +30,7 @@
 #include <string.h>
 
 #define CACHE_MAX_AGE_DAYS 15 
-#define SECOND_TO_DAYS 24 * 60 * 60
+#define SECONDS_PER_DAY 24 * 60 * 60
 
 // Copied from https://github.com/videolan/vlc/blob/master/modules/meta_engine/folder.c
 static const char art_files[][20] = {
@@ -148,6 +148,19 @@ static const char *introspection_xml =
     "  </interface>\n"
     "</node>\n";
 
+static const char* supported_extensions[] = {
+    ".jpg", ".png", ".gif", ".webp", ".bmp", ".tiff", ".avif", ".heic", ".ico"
+};
+
+static gboolean is_supported_image_file(const char *filename) {
+    for (size_t i = 0; i < sizeof(supported_extensions) / sizeof(supported_extensions[0]); i++) {
+        if (g_str_has_suffix(filename, supported_extensions[i])) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 static gchar *string_to_utf8(gchar *maybe_utf8)
 {
     gchar *attempted_validation;
@@ -217,43 +230,43 @@ static void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
 
 static gchar *path_to_uri(mpv_handle *mpv, char *path)
 {
-#if GLIB_CHECK_VERSION(2, 58, 0)
-    // version which uses g_canonicalize_filename which expands .. and .
-    // and makes the uris neater
-    char *working_dir;
-    gchar *canonical;
-    gchar *uri;
-
-    working_dir = mpv_get_property_string(mpv, "working-directory");
-    canonical = g_canonicalize_filename(path, working_dir);
-    uri = g_filename_to_uri(canonical, NULL, NULL);
-
-    mpv_free(working_dir);
-    g_free(canonical);
-
-    return uri;
-#else
-    // for compatibility with older versions of glib
-    gchar *converted;
-    if (g_path_is_absolute(path))
-    {
-        converted = g_filename_to_uri(path, NULL, NULL);
-    }
-    else
-    {
+    #if GLIB_CHECK_VERSION(2, 58, 0)
+        // version which uses g_canonicalize_filename which expands .. and .
+        // and makes the uris neater
         char *working_dir;
-        gchar *absolute;
+        gchar *canonical;
+        gchar *uri;
 
         working_dir = mpv_get_property_string(mpv, "working-directory");
-        absolute = g_build_filename(working_dir, path, NULL);
-        converted = g_filename_to_uri(absolute, NULL, NULL);
+        canonical = g_canonicalize_filename(path, working_dir);
+        uri = g_filename_to_uri(canonical, NULL, NULL);
 
         mpv_free(working_dir);
-        g_free(absolute);
-    }
+        g_free(canonical);
 
-    return converted;
-#endif
+        return uri;
+    #else
+        // for compatibility with older versions of glib
+        gchar *converted;
+        if (g_path_is_absolute(path))
+        {
+            converted = g_filename_to_uri(path, NULL, NULL);
+        }
+        else
+        {
+            char *working_dir;
+            gchar *absolute;
+
+            working_dir = mpv_get_property_string(mpv, "working-directory");
+            absolute = g_build_filename(working_dir, path, NULL);
+            converted = g_filename_to_uri(absolute, NULL, NULL);
+
+            mpv_free(working_dir);
+            g_free(absolute);
+        }
+
+        return converted;
+    #endif
 }
 
 static void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
@@ -381,7 +394,7 @@ static gchar *try_get_local_art(mpv_handle *mpv, char *path)
     return out;
 }
 
-static gchar *try_get_youtube_thumbnail(char *path)
+static gchar *try_get_youtube_thumbnail(const char *path)
 {
     gchar *out = NULL;
     if (!youtube_url_regex)
@@ -503,7 +516,7 @@ static void cleanup_old_cache_files()
     }
 
     time_t current_time = time(NULL);
-    time_t max_age = CACHE_MAX_AGE_DAYS * SECOND_TO_DAYS; // Convert days to seconds
+    time_t max_age = CACHE_MAX_AGE_DAYS * SECONDS_PER_DAY; // Convert days to seconds
 
     struct dirent *entry;
     struct stat file_stat;
@@ -516,8 +529,7 @@ static void cleanup_old_cache_files()
             continue;
         }
 
-        // to refactor 
-        if (!g_str_has_suffix(entry->d_name, ".jpg"))
+        if (!is_supported_image_file(entry->d_name))
         {
             continue;
         }
