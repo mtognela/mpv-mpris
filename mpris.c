@@ -31,6 +31,12 @@
 
 #define CACHE_MAX_AGE_DAYS 15 
 
+// cached last file path, owned by mpv
+static char *cached_path = NULL;
+
+// cached last artwork url, owned by glib
+static gchar *cached_art_url = NULL;
+
 static const char *introspection_xml =
     "<node>\n"
     "  <interface name=\"org.mpris.MediaPlayer2\">\n"
@@ -473,12 +479,6 @@ static void cleanup_old_cache_files()
     closedir(dir);
     g_free(cache_dir);
 }
-
-// cached last file path, owned by mpv
-static char *cached_path = NULL;
-
-// cached last artwork url, owned by glib
-static gchar *cached_art_url = NULL;
 
 static void add_metadata_art(mpv_handle *mpv, GVariantDict *dict)
 {
