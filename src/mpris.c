@@ -115,10 +115,6 @@ static const char *LOOP_PLAYLIST = "Playlist";
 static const char *youtube_url_pattern =
     "^https?:\\/\\/(?:youtu.be\\/|(?:www\\.)?youtube\\.com\\/watch\\?v=)(?<id>[a-zA-Z0-9_-]*)\\??.*";
 
-static GRegex *youtube_url_regex;
-
-static GMutex metadata_mutex;
-
 static const char *supported_extensions[] = {
     // Common formats
     ".jpg", ".jpeg", ".jpe", ".jfif", ".jfi",
@@ -159,6 +155,10 @@ static const char *supported_extensions[] = {
     ".flif",                 // Free Lossless Image Format
     ".qoi",                  // Quite OK Image format
 };
+
+static GRegex *youtube_url_regex;
+
+static GMutex metadata_mutex;
 
 static gboolean is_supported_image_file(const char *filename)
 {

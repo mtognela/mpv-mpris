@@ -28,8 +28,11 @@
 #include "mpv-mpris-types.h"
 
 // D-Bus interface vtables
-extern GDBusInterfaceVTable vtable_root;
+// extern GDBusInterfaceVTable vtable_root;
 extern GDBusInterfaceVTable vtable_player;
+
+static GDBusInterfaceVTable vtable_root = {
+    method_call_root, get_property_root, set_property_root, {0}};
 
 /**
  * Handle method calls on the root MPRIS interface

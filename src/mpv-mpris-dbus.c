@@ -1,6 +1,7 @@
 #include "mpv-mpris-types.h"
+#include "mpv-mpris-dbus.h"
 
-static void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
+void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
                              G_GNUC_UNUSED const char *sender,
                              G_GNUC_UNUSED const char *object_path,
                              G_GNUC_UNUSED const char *interface_name,
@@ -29,7 +30,7 @@ static void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
     }
 }
 
-static GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
+GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
                                    G_GNUC_UNUSED const char *sender,
                                    G_GNUC_UNUSED const char *object_path,
                                    G_GNUC_UNUSED const char *interface_name,
@@ -106,7 +107,7 @@ static GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
     return ret;
 }
 
-static gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
+gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
                                   G_GNUC_UNUSED const char *sender,
                                   G_GNUC_UNUSED const char *object_path,
                                   G_GNUC_UNUSED const char *interface_name,
@@ -132,7 +133,7 @@ static gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
     return TRUE;
 }
 
-static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
+void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
                                G_GNUC_UNUSED const char *sender,
                                G_GNUC_UNUSED const char *_object_path,
                                G_GNUC_UNUSED const char *interface_name,
@@ -245,7 +246,7 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     }
 }
 
-static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
+gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
                                     G_GNUC_UNUSED const char *sender,
                                     G_GNUC_UNUSED const char *object_path,
                                     G_GNUC_UNUSED const char *interface_name,
@@ -314,7 +315,7 @@ static gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
     return TRUE;
 }
 
-static gboolean emit_property_changes(gpointer data)
+gboolean emit_property_changes(gpointer data)
 {
     UserData *ud = (UserData *)data;
     GError *error = NULL;
@@ -358,7 +359,7 @@ static gboolean emit_property_changes(gpointer data)
     return TRUE;
 }
 
-static void emit_seeked_signal(UserData *ud)
+void emit_seeked_signal(UserData *ud)
 {
     GVariant *params;
     double position_s;
@@ -377,5 +378,63 @@ static void emit_seeked_signal(UserData *ud)
     if (error != NULL)
     {
         g_printerr("%s", error->message);
+    }
+}
+
+// Register D-Bus object and interfaces
+static void on_bus_acquired(GDBusConnection *connection,
+                            G_GNUC_UNUSED const char *name,
+                            gpointer user_data)
+{
+    GError *error = NULL;
+    UserData *ud = user_data;
+
+    if (!connection)
+    {
+        g_printerr("D-Bus connection is NULL\n");
+        return;
+    }
+
+    ud->connection = connection;
+
+    ud->root_interface_id =
+        g_dbus_connection_register_object(connection, "/org/mpris/MediaPlayer2",
+                                          ud->root_interface_info,
+                                          &vtable_root,
+                                          user_data, NULL, &error);
+    if (error != NULL)
+    {
+        g_printerr("Failed to register root interface: %s\n", error->message);
+        g_error_free(error); // Free the error
+        error = NULL;        // Reset to NULL
+    }
+
+    ud->player_interface_id =
+        g_dbus_connection_register_object(connection, "/org/mpris/MediaPlayer2",
+                                          ud->player_interface_info,
+                                          &vtable_player,
+                                          user_data, NULL, &error);
+    if (error != NULL)
+    {
+        g_printerr("Failed to register player interface: %s\n", error->message);
+        g_error_free(error);
+    }
+}
+
+static void on_name_lost(GDBusConnection *connection,
+                         G_GNUC_UNUSED const char *_name,
+                         gpointer user_data)
+{
+    if (connection)
+    {
+        UserData *ud = user_data;
+        pid_t pid = getpid();
+        char *name = g_strdup_printf("org.mpris.MediaPlayer2.mpv.instance%d", pid);
+        ud->bus_id = g_bus_own_name(G_BUS_TYPE_SESSION,
+                                    name,
+                                    G_BUS_NAME_OWNER_FLAGS_NONE,
+                                    NULL, NULL, NULL,
+                                    &ud, NULL);
+        g_free(name);
     }
 }
