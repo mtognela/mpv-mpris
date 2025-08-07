@@ -117,6 +117,8 @@ static const char *youtube_url_pattern =
 
 static GRegex *youtube_url_regex;
 
+static GMutex metadata_mutex;
+
 static const char *introspection_xml =
     "<node>\n"
     "  <interface name=\"org.mpris.MediaPlayer2\">\n"
@@ -275,14 +277,30 @@ static gchar *string_to_utf8(gchar *maybe_utf8)
 static void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
                                      const char *property, const char *tag)
 {
-    char *temp = mpv_get_property_string(mpv, property);
-    if (temp)
+    if (!mpv || !dict || !property || !tag)
     {
-        char *utf8 = string_to_utf8(temp);
-        g_variant_dict_insert(dict, tag, "s", utf8);
-        g_free(utf8);
-        mpv_free(temp);
+        g_warning("Invalid arguments to add_metadata_item_string");
+        return;
     }
+
+    char *temp = mpv_get_property_string(mpv, property);
+    if (!temp)
+    {
+        g_debug("Property %s not available", property);
+        return;
+    }
+
+    char *utf8 = string_to_utf8(temp);
+    if (!utf8)
+    {
+        mpv_free(temp);
+        g_warning("Failed to convert %s to UTF-8", property);
+        return;
+    }
+
+    g_variant_dict_insert(dict, tag, "s", utf8);
+    g_free(utf8);
+    mpv_free(temp);
 }
 
 static void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
@@ -323,45 +341,90 @@ static void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
     }
 }
 
-static gchar *path_to_uri(mpv_handle *mpv, char *path)
-{
+static gchar *path_to_uri(mpv_handle *mpv, char *path) {
+    if (!path) {
+        return NULL;
+    }
+
+    gchar *uri = NULL;
+
     #if GLIB_CHECK_VERSION(2, 58, 0)
-        // version which uses g_canonicalize_filename which expands .. and .
-        // and makes the uris neater
-        char *working_dir;
-        gchar *canonical;
-        gchar *uri;
+        char *working_dir = mpv_get_property_string(mpv, "working-directory");
+        if (!working_dir)
+        {
+            g_warning("Failed to get working directory");
+            return NULL;
+        }
 
-        working_dir = mpv_get_property_string(mpv, "working-directory");
-        canonical = g_canonicalize_filename(path, working_dir);
-        uri = g_filename_to_uri(canonical, NULL, NULL);
-
+        gchar *canonical = g_canonicalize_filename(path, working_dir);
         mpv_free(working_dir);
-        g_free(canonical);
 
-        return uri;
+        if (!canonical)
+        {
+            g_warning("Failed to canonicalize path");
+            return NULL;
+        }
+
+        uri = g_filename_to_uri(canonical, NULL, NULL);
+        g_free(canonical);
     #else
         // for compatibility with older versions of glib
-        gchar *converted;
         if (g_path_is_absolute(path))
         {
-            converted = g_filename_to_uri(path, NULL, NULL);
+            uri = g_filename_to_uri(path, NULL, NULL);
+            if (!uri)
+            {
+                g_warning("Failed to convert absolute path to URI: %s", path);
+            }
         }
         else
         {
-            char *working_dir;
-            gchar *absolute;
+            char *working_dir = NULL;
+            gchar *absolute = NULL;
+            GError *error = NULL;
 
             working_dir = mpv_get_property_string(mpv, "working-directory");
+            if (!working_dir)
+            {
+                g_warning("Failed to get working directory");
+                goto legacy_cleanup;
+            }
+
             absolute = g_build_filename(working_dir, path, NULL);
-            converted = g_filename_to_uri(absolute, NULL, NULL);
+            if (!absolute)
+            {
+                g_warning("Failed to build absolute path");
+                goto legacy_cleanup;
+            }
 
-            mpv_free(working_dir);
-            g_free(absolute);
+            uri = g_filename_to_uri(absolute, NULL, &error);
+            if (!uri)
+            {
+                g_warning("Failed to convert path to URI: %s (Error: %s)",
+                        absolute, error ? error->message : "unknown error");
+                if (error)
+                {
+                    g_error_free(error);
+                }
+            }
+
+        legacy_cleanup:
+            if (working_dir)
+            {
+                mpv_free(working_dir);
+            }
+            if (absolute)
+            {
+                g_free(absolute);
+            }
         }
-
-        return converted;
     #endif
+    
+    if (!uri) {
+        g_warning("Failed to convert path to URI: %s", path);
+    }
+    
+    return uri;
 }
 
 static void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
@@ -725,8 +788,23 @@ static gchar* extract_embedded_art(AVFormatContext *context, const char *media_p
 
 static gchar *try_get_embedded_art(char *path)
 {
-    gchar *uri = NULL;
+    if (!path) {
+        g_warning("Null path provided for embedded art lookup");
+        return NULL;
+    }
+
     AVFormatContext *context = NULL;
+
+    int ret = avformat_open_input(&context, path, NULL, NULL);
+
+    if (ret < 0) {
+        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(ret, errbuf, sizeof(errbuf));
+        g_warning("Failed to open input '%s': %s", path, errbuf);
+        return NULL;
+    }
+
+    gchar *uri = NULL;
 
     if (!avformat_open_input(&context, path, NULL, NULL))
     {
@@ -868,6 +946,8 @@ static void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict)
 
 static GVariant *create_metadata(UserData *ud)
 {
+    g_mutex_lock(&metadata_mutex);
+
     GVariantDict dict;
     int64_t track;
     double duration;
@@ -935,7 +1015,9 @@ static GVariant *create_metadata(UserData *ud)
     add_metadata_art(ud->mpv, &dict, ud); 
     add_metadata_content_created(ud->mpv, &dict);
 
-    return g_variant_dict_end(&dict);
+    GVariant *result = g_variant_dict_end(&dict);
+    g_mutex_unlock(&metadata_mutex);
+    return result;
 }
 
 static void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
@@ -1453,6 +1535,12 @@ static void on_bus_acquired(GDBusConnection *connection,
 {
     GError *error = NULL;
     UserData *ud = user_data;
+
+    if (!connection) {
+        g_printerr("D-Bus connection is NULL\n");
+        return;
+    }
+
     ud->connection = connection;
 
     ud->root_interface_id =
@@ -1665,56 +1753,79 @@ static void wakeup_handler(void *fd)
 }
 
 // Plugin entry point
-int mpv_open_cplugin(mpv_handle *mpv)
+int mpv_open_cplugin(mpv_handle *mpv) 
 {
-    GMainContext *ctx;
-    GMainLoop *loop;
+    GMainContext *ctx = NULL;
+    GMainLoop *loop = NULL;
     UserData ud = {0};
     GError *error = NULL;
     GDBusNodeInfo *introspection_data = NULL;
-    int pipe[2];
-    GSource *mpv_pipe_source;
-    GSource *timeout_source;
+    int pipe[2] = {-1, -1};
+    GSource *mpv_pipe_source = NULL;
+    GSource *timeout_source = NULL;
+    int ret = -1; // Default to error
 
+    // Validate input
     if (!mpv) {
         g_printerr("MPV handle is NULL\n");
-        return -1;
+        return ret;
     }
 
+    // Initialize context and loop
     ctx = g_main_context_new();
     if (!ctx) {
         g_printerr("Failed to create main context\n");
-        return -1;
+        goto cleanup;
     }
 
     loop = g_main_loop_new(ctx, FALSE);
     if (!loop) {
         g_printerr("Failed to create main loop\n");
-        g_main_context_unref(ctx);
-        return -1;
+        goto cleanup;
     }
 
-    // Load introspection data and split into separate interfaces
+    // Load D-Bus introspection data
     introspection_data = g_dbus_node_info_new_for_xml(introspection_xml, &error);
-    if (error != NULL)
-    {
-        g_printerr("%s", error->message);
+    if (error != NULL) {
+        g_printerr("Failed to parse introspection XML: %s\n", error->message);
+        g_error_free(error);
+        error = NULL;
+        goto cleanup;
     }
-    ud.root_interface_info =
-        g_dbus_node_info_lookup_interface(introspection_data, "org.mpris.MediaPlayer2");
-    ud.player_interface_info =
-        g_dbus_node_info_lookup_interface(introspection_data, "org.mpris.MediaPlayer2.Player");
 
+    if (!introspection_data) {
+        g_printerr("Failed to create D-Bus introspection data\n");
+        goto cleanup;
+    }
+
+    // Setup interface info
+    ud.root_interface_info = g_dbus_node_info_lookup_interface(introspection_data, 
+                                "org.mpris.MediaPlayer2");
+    ud.player_interface_info = g_dbus_node_info_lookup_interface(introspection_data, 
+                                "org.mpris.MediaPlayer2.Player");
+    
+    if (!ud.root_interface_info || !ud.player_interface_info) {
+        g_printerr("Failed to lookup D-Bus interfaces\n");
+        goto cleanup;
+    }
+
+    // Initialize UserData
     ud.mpv = mpv;
     ud.loop = loop;
     ud.status = STATUS_STOPPED;
     ud.loop_status = LOOP_NONE;
     ud.changed_properties = g_hash_table_new(g_str_hash, g_str_equal);
+    if (!ud.changed_properties) {
+        g_printerr("Failed to create properties hash table\n");
+        goto cleanup;
+    }
+
     ud.seek_expected = FALSE;
     ud.idle = FALSE;
     ud.paused = FALSE;
     ud.shuffle = FALSE;
 
+    // Register on D-Bus
     g_main_context_push_thread_default(ctx);
     ud.bus_id = g_bus_own_name(G_BUS_TYPE_SESSION,
                                "org.mpris.MediaPlayer2.mpv",
@@ -1725,58 +1836,119 @@ int mpv_open_cplugin(mpv_handle *mpv)
                                &ud, NULL);
     g_main_context_pop_thread_default(ctx);
 
-    // Receive event for property changes
-    mpv_observe_property(mpv, 0, "pause", MPV_FORMAT_FLAG);
-    mpv_observe_property(mpv, 0, "idle-active", MPV_FORMAT_FLAG);
-    mpv_observe_property(mpv, 0, "media-title", MPV_FORMAT_STRING);
-    mpv_observe_property(mpv, 0, "speed", MPV_FORMAT_DOUBLE);
-    mpv_observe_property(mpv, 0, "volume", MPV_FORMAT_DOUBLE);
-    mpv_observe_property(mpv, 0, "loop-file", MPV_FORMAT_STRING);
-    mpv_observe_property(mpv, 0, "loop-playlist", MPV_FORMAT_STRING);
-    mpv_observe_property(mpv, 0, "duration", MPV_FORMAT_INT64);
-    mpv_observe_property(mpv, 0, "shuffle", MPV_FORMAT_FLAG);
-    mpv_observe_property(mpv, 0, "fullscreen", MPV_FORMAT_FLAG);
-
-    // Run callback whenever there are events
-    g_unix_open_pipe(pipe, 0, &error);
-    if (error != NULL)
-    {
-        g_printerr("%s", error->message);
+    if (!ud.bus_id) {
+        g_printerr("Failed to own D-Bus name\n");
+        goto cleanup;
     }
-    fcntl(pipe[0], F_SETFL, O_NONBLOCK);
+
+    // Setup property observers
+    if (mpv_observe_property(mpv, 0, "pause", MPV_FORMAT_FLAG) < 0 ||
+        mpv_observe_property(mpv, 0, "idle-active", MPV_FORMAT_FLAG) < 0 ||
+        mpv_observe_property(mpv, 0, "media-title", MPV_FORMAT_STRING) < 0 ||
+        mpv_observe_property(mpv, 0, "speed", MPV_FORMAT_DOUBLE) < 0 ||
+        mpv_observe_property(mpv, 0, "volume", MPV_FORMAT_DOUBLE) < 0 ||
+        mpv_observe_property(mpv, 0, "loop-file", MPV_FORMAT_STRING) < 0 ||
+        mpv_observe_property(mpv, 0, "loop-playlist", MPV_FORMAT_STRING) < 0 ||
+        mpv_observe_property(mpv, 0, "duration", MPV_FORMAT_INT64) < 0 ||
+        mpv_observe_property(mpv, 0, "shuffle", MPV_FORMAT_FLAG) < 0 ||
+        mpv_observe_property(mpv, 0, "fullscreen", MPV_FORMAT_FLAG) < 0) {
+        g_printerr("Failed to observe MPV properties\n");
+        goto cleanup;
+    }
+
+    // Setup event pipe
+    if (!g_unix_open_pipe(pipe, FD_CLOEXEC, &error)) {
+        g_printerr("Failed to create pipe: %s\n", error->message);
+        g_error_free(error);
+        error = NULL;
+        goto cleanup;
+    }
+
+    if (fcntl(pipe[0], F_SETFL, O_NONBLOCK) == -1) {
+        g_printerr("Failed to set pipe non-blocking: %s\n", g_strerror(errno));
+        goto cleanup;
+    }
+
     mpv_set_wakeup_callback(mpv, wakeup_handler, &pipe[1]);
+
+    // Create and attach pipe source
     mpv_pipe_source = g_unix_fd_source_new(pipe[0], G_IO_IN);
-    g_source_set_callback(mpv_pipe_source,
-                          G_SOURCE_FUNC(event_handler),
-                          &ud,
-                          NULL);
+    if (!mpv_pipe_source) {
+        g_printerr("Failed to create pipe source\n");
+        goto cleanup;
+    }
+
+    g_source_set_callback(mpv_pipe_source, G_SOURCE_FUNC(event_handler), &ud, NULL);
     g_source_attach(mpv_pipe_source, ctx);
 
-    // Emit any new property changes every 100ms
+    // Create and attach timeout source
     timeout_source = g_timeout_source_new(100);
-    g_source_set_callback(timeout_source,
-                          G_SOURCE_FUNC(emit_property_changes),
-                          &ud,
-                          NULL);
+    if (!timeout_source) {
+        g_printerr("Failed to create timeout source\n");
+        goto cleanup;
+    }
+
+    g_source_set_callback(timeout_source, G_SOURCE_FUNC(emit_property_changes), &ud, NULL);
     g_source_attach(timeout_source, ctx);
 
+    // Main loop - only reach here if everything succeeded
+    ret = 0;
     g_main_loop_run(loop);
+
+cleanup:
+    // Cleanup in reverse order of initialization
+    if (timeout_source) {
+        g_source_unref(timeout_source);
+    }
+
+    if (mpv_pipe_source) {
+        g_source_unref(mpv_pipe_source);
+    }
+
+    if (pipe[0] != -1) {
+        close(pipe[0]);
+    }
+    if (pipe[1] != -1) {
+        close(pipe[1]);
+    }
 
     mpv_free(ud.cached_path);
     g_free(ud.cached_art_url);
 
     cleanup_old_cache_files();
 
-    g_source_unref(mpv_pipe_source);
-    g_source_unref(timeout_source);
+    if (ud.connection) {
+        if (ud.root_interface_id) {
+            g_dbus_connection_unregister_object(ud.connection, ud.root_interface_id);
+        }
+        if (ud.player_interface_id) {
+            g_dbus_connection_unregister_object(ud.connection, ud.player_interface_id);
+        }
+    }
 
-    g_dbus_connection_unregister_object(ud.connection, ud.root_interface_id);
-    g_dbus_connection_unregister_object(ud.connection, ud.player_interface_id);
+    if (ud.bus_id) {
+        g_bus_unown_name(ud.bus_id);
+    }
 
-    g_bus_unown_name(ud.bus_id);
-    g_main_loop_unref(loop);
-    g_main_context_unref(ctx);
-    g_dbus_node_info_unref(introspection_data);
+    if (ud.changed_properties) {
+        g_hash_table_unref(ud.changed_properties);
+    }
 
-    return 0;
+    if (ud.metadata) {
+        g_variant_unref(ud.metadata);
+    }
+
+    if (loop) {
+        g_main_loop_unref(loop);
+    }
+
+    if (ctx) {
+        g_main_context_unref(ctx);
+    }
+
+    if (introspection_data) {
+        g_dbus_node_info_unref(introspection_data);
+    }
+
+    return ret;
 }
