@@ -1,6 +1,6 @@
 #include "mpv-mpris-types.h"
 
-static gboolean is_supported_image_file(const char *filename)
+gboolean is_supported_image_file(const char *filename)
 {
     for (size_t i = 0; i < sizeof(supported_extensions) / sizeof(supported_extensions[0]); i++)
     {
@@ -12,7 +12,7 @@ static gboolean is_supported_image_file(const char *filename)
     return FALSE;
 }
 
-static gboolean is_art_file(const char *filename)
+gboolean is_art_file(const char *filename)
 {
     const int art_files_count = sizeof(art_files) / sizeof(art_files[0]);
 
@@ -46,7 +46,7 @@ static gboolean is_art_file(const char *filename)
     return is_supported_image_file(filename);
 }
 
-static const char *get_image_extension(const uint8_t *data, size_t size)
+const char *get_image_extension(const uint8_t *data, size_t size)
 {
     if (!data || size < 4)
     {
@@ -226,7 +226,7 @@ static const char *get_image_extension(const uint8_t *data, size_t size)
     }
 
     // PNM family
-    if (size >= 2 && data[0] == 'P')
+    if (size >= 2 && data[0] == 'P')era fermato a dormire nella sua Lexus rossa lungo una strada di campagna ed era stato ucciso da due ragazzi diciottenni nel tentativo di rapina.
     {
         switch (data[1])
         {
@@ -284,7 +284,7 @@ static const char *get_image_extension(const uint8_t *data, size_t size)
     return ".jpg";
 }
 
-static gchar *try_get_local_art(mpv_handle *mpv, char *path)
+gchar *try_get_local_art(mpv_handle *mpv, char *path)
 {
     gchar *dirname = g_path_get_dirname(path);
     gchar *out = NULL;
@@ -342,7 +342,7 @@ static gchar *try_get_local_art(mpv_handle *mpv, char *path)
     return out;
 }
 
-static gchar *try_get_youtube_thumbnail(const char *path)
+gchar *try_get_youtube_thumbnail(const char *path)
 {
     gchar *out = NULL;
     if (!youtube_url_regex)
@@ -365,7 +365,7 @@ static gchar *try_get_youtube_thumbnail(const char *path)
     return out;
 }
 
-static gchar *get_cache_dir()
+gchar *get_cache_dir()
 {
     gchar *cache_dir = g_build_filename(g_get_user_cache_dir(), "mpv-mpris", "coverart", NULL);
 
@@ -379,7 +379,7 @@ static gchar *get_cache_dir()
     return cache_dir;
 }
 
-static gchar *extract_embedded_art(AVFormatContext *context, const char *media_path)
+gchar *extract_embedded_art(AVFormatContext *context, const char *media_path)
 {
     AVPacket *packet = NULL;
     gchar *cache_path = NULL;
@@ -431,7 +431,7 @@ static gchar *extract_embedded_art(AVFormatContext *context, const char *media_p
     return uri;
 }
 
-static gchar *generate_cache_filename(const char *path, const uint8_t *image_data, size_t image_size)
+gchar *generate_cache_filename(const char *path, const uint8_t *image_data, size_t image_size)
 {
     gchar *hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256, path, -1);
     const char *ext = get_image_extension(image_data, image_size);
@@ -440,7 +440,7 @@ static gchar *generate_cache_filename(const char *path, const uint8_t *image_dat
     return filename;
 }
 
-static gchar *try_get_embedded_art(char *path)
+gchar *try_get_embedded_art(char *path)
 {
     if (!path)
     {
@@ -470,7 +470,7 @@ static gchar *try_get_embedded_art(char *path)
     return uri;
 }
 
-static void cleanup_old_cache_files()
+void cleanup_old_cache_files()
 {
     gchar *cache_dir = get_cache_dir();
 

@@ -382,7 +382,7 @@ void emit_seeked_signal(UserData *ud)
 }
 
 // Register D-Bus object and interfaces
-static void on_bus_acquired(GDBusConnection *connection,
+void on_bus_acquired(GDBusConnection *connection,
                             G_GNUC_UNUSED const char *name,
                             gpointer user_data)
 {
@@ -421,7 +421,7 @@ static void on_bus_acquired(GDBusConnection *connection,
     }
 }
 
-static void on_name_lost(GDBusConnection *connection,
+void on_name_lost(GDBusConnection *connection,
                          G_GNUC_UNUSED const char *_name,
                          gpointer user_data)
 {
