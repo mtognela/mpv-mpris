@@ -584,7 +584,6 @@ static const char* get_image_extension(const uint8_t *data, size_t size) {
     return ".jpg";
 }
 
-// Enhanced local art search that scans directory for any image files
 static gchar *try_get_local_art_enhanced(mpv_handle *mpv, char *path) {
     gchar *dirname = g_path_get_dirname(path);
     gchar *out = NULL;
