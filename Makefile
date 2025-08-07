@@ -12,9 +12,13 @@ BASE_LDFLAGS = $(shell $(PKG_CONFIG) --libs gio-2.0 gio-unix-2.0 glib-2.0 mpv li
 
 SCRIPTS_DIR := $(HOME)/.config/mpv/scripts
 
+SRC_DIR := mpris
 PREFIX := /usr/local
 PLUGINDIR := $(PREFIX)/lib/mpv-mpris
 SYS_SCRIPTS_DIR := /etc/mpv/scripts
+
+TARGET := mpris.so
+SRCS := $(wildcard $(SRC_DIR)/*.c)
 
 UID ?= $(shell id -u)
 
@@ -24,8 +28,8 @@ UID ?= $(shell id -u)
   test \
   clean
 
-mpris.so: mpris/mpris.c
-	$(CC) mpris/mpris.c -o mpris.so $(BASE_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(BASE_LDFLAGS) $(LDFLAGS) -shared -fPIC
+mpris.so: $(SRCS)
+	$(CC) $(SRCS) -o $(TARGET) $(BASE_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(BASE_LDFLAGS) $(LDFLAGS) -shared -fPIC
 
 ifneq ($(UID),0)
 install: install-user
