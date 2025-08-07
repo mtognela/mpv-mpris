@@ -647,7 +647,7 @@ static const char* get_image_extension(const uint8_t *data, size_t size) {
     return ".jpg";
 }
 
-static gchar *try_get_local_art_enhanced(mpv_handle *mpv, char *path) {
+static gchar *try_get_local_art(mpv_handle *mpv, char *path) {
     gchar *dirname = g_path_get_dirname(path);
     gchar *out = NULL;
     gboolean found = FALSE;
@@ -796,8 +796,8 @@ static gchar *try_get_embedded_art(char *path)
     AVFormatContext *context = NULL;
 
     int ret = avformat_open_input(&context, path, NULL, NULL);
-
-    if (ret < 0) {
+    if (ret < 0)
+    {
         char errbuf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, errbuf, sizeof(errbuf));
         g_warning("Failed to open input '%s': %s", path, errbuf);
@@ -898,7 +898,7 @@ static void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud)
         } else {
             ud->cached_art_url = try_get_embedded_art(path);
             if (!ud->cached_art_url) {
-                ud->cached_art_url = try_get_local_art_enhanced(mpv, path);
+                ud->cached_art_url = try_get_local_art(mpv, path);
             }
         }
     } else {
@@ -1165,6 +1165,11 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
                                gpointer user_data)
 {
     UserData *ud = (UserData *)user_data;
+    if (!ud || !ud->mpv) {
+        g_warning("Invalid user data in method call");
+        return;
+    }
+
     if (g_strcmp0(method_name, "Pause") == 0)
     {
         int paused = TRUE;

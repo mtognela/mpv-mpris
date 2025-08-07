@@ -8,7 +8,7 @@ RM := rm
 
 # Base flags, environment CFLAGS / LDFLAGS can be appended.
 BASE_CFLAGS = -std=c99 -Wall -Wextra -O2 -pedantic $(shell $(PKG_CONFIG) --cflags gio-2.0 gio-unix-2.0 glib-2.0 mpv libavformat)
-BASE_LDFLAGS = $(shell $(PKG_CONFIG) --libs gio-2.0 gio-unix-2.0 glib-2.0 libavformat)
+BASE_LDFLAGS = $(shell $(PKG_CONFIG) --libs gio-2.0 gio-unix-2.0 glib-2.0 mpv libavformat)
 
 SCRIPTS_DIR := $(HOME)/.config/mpv/scripts
 
@@ -24,8 +24,8 @@ UID ?= $(shell id -u)
   test \
   clean
 
-mpris.so: mpris.c
-	$(CC) mpris.c -o mpris.so $(BASE_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(BASE_LDFLAGS) $(LDFLAGS) -shared -fPIC
+mpris.so: mpris/mpris.c
+	$(CC) mpris/mpris.c -o mpris.so $(BASE_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(BASE_LDFLAGS) $(LDFLAGS) -shared -fPIC
 
 ifneq ($(UID),0)
 install: install-user
@@ -41,19 +41,19 @@ install-user: mpris.so
 
 uninstall-user:
 	$(RM) -f $(SCRIPTS_DIR)/mpris.so
-	$(RMDIR) -p $(SCRIPTS_DIR)
+	-$(RMDIR) -p $(SCRIPTS_DIR) 2>/dev/null || true
 
 install-system: mpris.so
 	$(MKDIR) -p $(DESTDIR)$(PLUGINDIR)
 	$(INSTALL) -t $(DESTDIR)$(PLUGINDIR) mpris.so
 	$(MKDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR)
-	$(LN) -s $(PLUGINDIR)/mpris.so $(DESTDIR)$(SYS_SCRIPTS_DIR)
+	$(LN) -sf $(PLUGINDIR)/mpris.so $(DESTDIR)$(SYS_SCRIPTS_DIR)
 
 uninstall-system:
 	$(RM) -f $(DESTDIR)$(SYS_SCRIPTS_DIR)/mpris.so
-	$(RMDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR)
+	-$(RMDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR) 2>/dev/null || true
 	$(RM) -f $(DESTDIR)$(PLUGINDIR)/mpris.so
-	$(RMDIR) -p $(DESTDIR)$(PLUGINDIR)
+	-$(RMDIR) -p $(DESTDIR)$(PLUGINDIR) 2>/dev/null || true
 
 test: mpris.so
 	$(MAKE) -C test
