@@ -26,6 +26,7 @@ mpv --script=/path/to/mpris.so video.mp4
 ```
 
 ## Install
+###  `WIP TO UPDATE SECTION INSTALL`
 
 Packages are available for many [distributions](https://repology.org/project/mpv-mpris/versions).
 
