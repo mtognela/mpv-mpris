@@ -29,56 +29,56 @@
 #include <inttypes.h>
 #include <string.h>
 
-#define CACHE_MAX_AGE_DAYS 15 
+#define CACHE_MAX_AGE_DAYS 15
 #define SECONDS_PER_DAY 86400
 
 static const char art_files[][32] = {
     // Windows standard
     "Folder.jpg", "Folder.png", "Folder.gif", "Folder.webp",
     "AlbumArtSmall.jpg", "AlbumArt.jpg", "AlbumArt.png",
-    
+
     // Common album art names
     "Album.jpg", "Album.png", "Album.gif", "Album.webp",
     "cover.jpg", "cover.png", "cover.gif", "cover.webp", "cover.bmp",
     "Cover.jpg", "Cover.png", "Cover.gif", "Cover.webp", "Cover.bmp",
     "COVER.JPG", "COVER.PNG", "COVER.GIF", "COVER.WEBP", "COVER.BMP",
-    
+
     // Front cover variations
     "front.jpg", "front.png", "front.gif", "front.webp", "front.bmp",
     "Front.jpg", "Front.png", "Front.gif", "Front.webp", "Front.bmp",
     "FRONT.JPG", "FRONT.PNG", "FRONT.GIF", "FRONT.WEBP", "FRONT.BMP",
-    
+
     // Artwork variations
     "artwork.jpg", "artwork.png", "artwork.gif", "artwork.webp",
     "Artwork.jpg", "Artwork.png", "Artwork.gif", "Artwork.webp",
-    
+
     // Thumbnail variations
     "thumb.jpg", "thumb.png", "thumb.gif", "thumb.webp",
     "Thumb.jpg", "Thumb.png", "Thumb.gif", "Thumb.webp",
     "thumbnail.jpg", "thumbnail.png", "thumbnail.gif", "thumbnail.webp",
-    
+
     // Other common names
     "albumart.jpg", "albumart.png", "albumcover.jpg", "albumcover.png",
     "cd.jpg", "cd.png", "disc.jpg", "disc.png",
     "music.jpg", "music.png", "audio.jpg", "audio.png",
-    
+
     // KDE and other desktop environments
     ".folder.png", ".folder.jpg", ".cover.jpg", ".cover.png",
-    
+
     // Case variations for case-sensitive filesystems
     "folder.jpg", "folder.png", "folder.gif", "folder.webp",
-    
+
     // High resolution variants
     "cover-large.jpg", "cover-large.png", "cover-hq.jpg", "cover-hq.png",
     "front-large.jpg", "front-large.png", "front-hq.jpg", "front-hq.png",
-    
+
     // Specific media player conventions
     "AlbumArt_{*}_Large.jpg", "AlbumArt_{*}_Small.jpg", // Windows Media Player
-    
+
     // International variations
-    "portada.jpg", "portada.png", // Spanish
+    "portada.jpg", "portada.png",   // Spanish
     "caratula.jpg", "caratula.png", // Spanish
-    "capa.jpg", "capa.png", // Portuguese
+    "capa.jpg", "capa.png",         // Portuguese
     "pochette.jpg", "pochette.png", // French
 };
 
@@ -100,10 +100,10 @@ typedef struct UserData
     gboolean seek_expected;
     gboolean idle;
     gboolean paused;
-    
-    // cache filed 
-    char *cached_path;      // owned by mpv
-    gchar *cached_art_url;  // owned by glib
+
+    // cache filed
+    char *cached_path;     // owned by mpv
+    gchar *cached_art_url; // owned by glib
 } UserData;
 
 static const char *STATUS_PLAYING = "Playing";
@@ -180,72 +180,81 @@ static const char *introspection_xml =
     "  </interface>\n"
     "</node>\n";
 
-static const char* supported_extensions[] = {
+static const char *supported_extensions[] = {
     // Common formats
     ".jpg", ".jpeg", ".jpe", ".jfif", ".jfi",
     ".png", ".gif", ".webp", ".bmp", ".dib",
     ".tiff", ".tif", ".avif", ".heic", ".heif",
     ".ico", ".cur",
-    
+
     // RAW camera formats
     ".cr2", ".crw", ".nef", ".nrw", ".arw", ".srf", ".sr2",
     ".orf", ".rw2", ".pef", ".ptx", ".dng", ".raf", ".mrw",
     ".dcr", ".kdc", ".erf", ".3fr", ".mef", ".mos", ".x3f",
-    
+
     // Professional/specialized formats
-    ".psd", ".psb",           // Adobe Photoshop
-    ".xcf",                   // GIMP
-    ".exr", ".hdr", ".pic",   // High Dynamic Range
-    ".dpx", ".cin",           // Digital cinema
-    ".sgi", ".rgb", ".bw",    // SGI formats
-    ".sun", ".ras",           // Sun raster
-    ".pnm", ".pbm", ".pgm", ".ppm", ".pam", // Netpbm formats
-    ".pfm",                   // Portable float map
-    ".pcx",                   // PC Paintbrush
-    ".tga", ".icb", ".vda", ".vst", // Targa formats
+    ".psd", ".psb",                                 // Adobe Photoshop
+    ".xcf",                                         // GIMP
+    ".exr", ".hdr", ".pic",                         // High Dynamic Range
+    ".dpx", ".cin",                                 // Digital cinema
+    ".sgi", ".rgb", ".bw",                          // SGI formats
+    ".sun", ".ras",                                 // Sun raster
+    ".pnm", ".pbm", ".pgm", ".ppm", ".pam",         // Netpbm formats
+    ".pfm",                                         // Portable float map
+    ".pcx",                                         // PC Paintbrush
+    ".tga", ".icb", ".vda", ".vst",                 // Targa formats
     ".jp2", ".j2k", ".jpf", ".jpx", ".jpm", ".mj2", // JPEG 2000
-    ".jxr", ".wdp", ".hdp",   // JPEG XR / HD Photo
-    ".jxl",                   // JPEG XL
-    
+    ".jxr", ".wdp", ".hdp",                         // JPEG XR / HD Photo
+    ".jxl",                                         // JPEG XL
+
     // Vector formats (if supported)
     ".svg", ".svgz",
-    
+
     // Animation formats
     ".apng", ".mng",
-    
+
     // Less common formats
-    ".xbm", ".xpm",           // X11 bitmap/pixmap
-    ".wbmp",                  // Wireless bitmap
-    ".fits", ".fit", ".fts",  // Flexible Image Transport System
-    ".flif",                  // Free Lossless Image Format
-    ".qoi",                   // Quite OK Image format
+    ".xbm", ".xpm",          // X11 bitmap/pixmap
+    ".wbmp",                 // Wireless bitmap
+    ".fits", ".fit", ".fts", // Flexible Image Transport System
+    ".flif",                 // Free Lossless Image Format
+    ".qoi",                  // Quite OK Image format
 };
 
-static gboolean is_supported_image_file(const char *filename) {
-    for (size_t i = 0; i < sizeof(supported_extensions) / sizeof(supported_extensions[0]); i++) {
-        if (g_str_has_suffix(filename, supported_extensions[i])) {
+static gboolean is_supported_image_file(const char *filename)
+{
+    for (size_t i = 0; i < sizeof(supported_extensions) / sizeof(supported_extensions[0]); i++)
+    {
+        if (g_str_has_suffix(filename, supported_extensions[i]))
+        {
             return TRUE;
         }
     }
     return FALSE;
 }
 
-static gboolean is_art_file(const char *filename) {
+static gboolean is_art_file(const char *filename)
+{
     const int art_files_count = sizeof(art_files) / sizeof(art_files[0]);
-    
-    for (int i = 0; i < art_files_count; i++) {
+
+    for (int i = 0; i < art_files_count; i++)
+    {
         // Simple string comparison for exact matches
-        if (g_strcmp0(filename, art_files[i]) == 0) {
+        if (g_strcmp0(filename, art_files[i]) == 0)
+        {
             return TRUE;
         }
-        
+
         // Handle wildcard patterns (basic implementation)
-        if (strstr(art_files[i], "{*}") != NULL) {
+        if (strstr(art_files[i], "{*}") != NULL)
+        {
             // Extract prefix and suffix for pattern matching
             gchar **parts = g_strsplit(art_files[i], "{*}", 2);
-            if (parts[0] && parts[1]) {
-                if (g_str_has_prefix(filename, parts[0]) && 
-                    g_str_has_suffix(filename, parts[1])) {
+            if (parts[0] && parts[1])
+            {
+                if (g_str_has_prefix(filename, parts[0]) &&
+                    g_str_has_suffix(filename, parts[1]))
+                {
                     g_strfreev(parts);
                     return TRUE;
                 }
@@ -253,7 +262,7 @@ static gboolean is_art_file(const char *filename) {
             g_strfreev(parts);
         }
     }
-    
+
     // Also check if it's a supported image file in the same directory
     return is_supported_image_file(filename);
 }
@@ -341,89 +350,92 @@ static void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
     }
 }
 
-static gchar *path_to_uri(mpv_handle *mpv, char *path) {
-    if (!path) {
+static gchar *path_to_uri(mpv_handle *mpv, char *path)
+{
+    if (!path)
+    {
         return NULL;
     }
 
     gchar *uri = NULL;
 
-    #if GLIB_CHECK_VERSION(2, 58, 0)
-        char *working_dir = mpv_get_property_string(mpv, "working-directory");
+#if GLIB_CHECK_VERSION(2, 58, 0)
+    char *working_dir = mpv_get_property_string(mpv, "working-directory");
+    if (!working_dir)
+    {
+        g_warning("Failed to get working directory");
+        return NULL;
+    }
+
+    gchar *canonical = g_canonicalize_filename(path, working_dir);
+    mpv_free(working_dir);
+
+    if (!canonical)
+    {
+        g_warning("Failed to canonicalize path");
+        return NULL;
+    }
+
+    uri = g_filename_to_uri(canonical, NULL, NULL);
+    g_free(canonical);
+#else
+    // for compatibility with older versions of glib
+    if (g_path_is_absolute(path))
+    {
+        uri = g_filename_to_uri(path, NULL, NULL);
+        if (!uri)
+        {
+            g_warning("Failed to convert absolute path to URI: %s", path);
+        }
+    }
+    else
+    {
+        char *working_dir = NULL;
+        gchar *absolute = NULL;
+        GError *error = NULL;
+
+        working_dir = mpv_get_property_string(mpv, "working-directory");
         if (!working_dir)
         {
             g_warning("Failed to get working directory");
-            return NULL;
+            goto legacy_cleanup;
         }
 
-        gchar *canonical = g_canonicalize_filename(path, working_dir);
-        mpv_free(working_dir);
-
-        if (!canonical)
+        absolute = g_build_filename(working_dir, path, NULL);
+        if (!absolute)
         {
-            g_warning("Failed to canonicalize path");
-            return NULL;
+            g_warning("Failed to build absolute path");
+            goto legacy_cleanup;
         }
 
-        uri = g_filename_to_uri(canonical, NULL, NULL);
-        g_free(canonical);
-    #else
-        // for compatibility with older versions of glib
-        if (g_path_is_absolute(path))
+        uri = g_filename_to_uri(absolute, NULL, &error);
+        if (!uri)
         {
-            uri = g_filename_to_uri(path, NULL, NULL);
-            if (!uri)
+            g_warning("Failed to convert path to URI: %s (Error: %s)",
+                      absolute, error ? error->message : "unknown error");
+            if (error)
             {
-                g_warning("Failed to convert absolute path to URI: %s", path);
+                g_error_free(error);
             }
         }
-        else
+
+    legacy_cleanup:
+        if (working_dir)
         {
-            char *working_dir = NULL;
-            gchar *absolute = NULL;
-            GError *error = NULL;
-
-            working_dir = mpv_get_property_string(mpv, "working-directory");
-            if (!working_dir)
-            {
-                g_warning("Failed to get working directory");
-                goto legacy_cleanup;
-            }
-
-            absolute = g_build_filename(working_dir, path, NULL);
-            if (!absolute)
-            {
-                g_warning("Failed to build absolute path");
-                goto legacy_cleanup;
-            }
-
-            uri = g_filename_to_uri(absolute, NULL, &error);
-            if (!uri)
-            {
-                g_warning("Failed to convert path to URI: %s (Error: %s)",
-                        absolute, error ? error->message : "unknown error");
-                if (error)
-                {
-                    g_error_free(error);
-                }
-            }
-
-        legacy_cleanup:
-            if (working_dir)
-            {
-                mpv_free(working_dir);
-            }
-            if (absolute)
-            {
-                g_free(absolute);
-            }
+            mpv_free(working_dir);
         }
-    #endif
-    
-    if (!uri) {
+        if (absolute)
+        {
+            g_free(absolute);
+        }
+    }
+#endif
+
+    if (!uri)
+    {
         g_warning("Failed to convert path to URI: %s", path);
     }
-    
+
     return uri;
 }
 
@@ -454,60 +466,72 @@ static void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
     mpv_free(path);
 }
 
-static const char* get_image_extension(const uint8_t *data, size_t size) {
-    if (!data || size < 4) {
+static const char *get_image_extension(const uint8_t *data, size_t size)
+{
+    if (!data || size < 4)
+    {
         return ".jpg"; // fallback for invalid input
     }
 
     // JPEG - FF D8 FF (followed by various markers)
-    if (size >= 4 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF) {
+    if (size >= 4 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+    {
         return ".jpg";
     }
 
     // PNG - 89 50 4E 47 0D 0A 1A 0A
-    if (size >= 8 && memcmp(data, "\x89PNG\r\n\x1a\n", 8) == 0) {
+    if (size >= 8 && memcmp(data, "\x89PNG\r\n\x1a\n", 8) == 0)
+    {
         return ".png";
     }
 
     // GIF87a - 47 49 46 38 37 61
-    if (size >= 6 && memcmp(data, "GIF87a", 6) == 0) {
+    if (size >= 6 && memcmp(data, "GIF87a", 6) == 0)
+    {
         return ".gif";
     }
 
     // GIF89a - 47 49 46 38 39 61
-    if (size >= 6 && memcmp(data, "GIF89a", 6) == 0) {
+    if (size >= 6 && memcmp(data, "GIF89a", 6) == 0)
+    {
         return ".gif";
     }
 
     // WebP - RIFF header with WEBP signature
-    if (size >= 12 && memcmp(data, "RIFF", 4) == 0 && memcmp(data + 8, "WEBP", 4) == 0) {
+    if (size >= 12 && memcmp(data, "RIFF", 4) == 0 && memcmp(data + 8, "WEBP", 4) == 0)
+    {
         return ".webp";
     }
 
     // BMP - BM signature
-    if (size >= 2 && data[0] == 0x42 && data[1] == 0x4D) {
+    if (size >= 2 && data[0] == 0x42 && data[1] == 0x4D)
+    {
         return ".bmp";
     }
 
     // TIFF (Little Endian) - 49 49 2A 00
-    if (size >= 4 && memcmp(data, "II\x2A\x00", 4) == 0) {
+    if (size >= 4 && memcmp(data, "II\x2A\x00", 4) == 0)
+    {
         return ".tiff";
     }
 
     // TIFF (Big Endian) - 4D 4D 00 2A
-    if (size >= 4 && memcmp(data, "MM\x00\x2A", 4) == 0) {
+    if (size >= 4 && memcmp(data, "MM\x00\x2A", 4) == 0)
+    {
         return ".tiff";
     }
 
     // AVIF - ftyp box with AVIF brand
-    if (size >= 12 && memcmp(data + 4, "ftypavif", 8) == 0) {
+    if (size >= 12 && memcmp(data + 4, "ftypavif", 8) == 0)
+    {
         return ".avif";
     }
 
     // HEIC/HEIF - ftyp box with various HEIC brands
-    if (size >= 12 && memcmp(data + 4, "ftyp", 4) == 0) {
-        const char *brand = (const char*)(data + 8);
-        if (memcmp(brand, "heic", 4) == 0 || 
+    if (size >= 12 && memcmp(data + 4, "ftyp", 4) == 0)
+    {
+        const char *brand = (const char *)(data + 8);
+        if (memcmp(brand, "heic", 4) == 0 ||
             memcmp(brand, "heix", 4) == 0 ||
             memcmp(brand, "hevc", 4) == 0 ||
             memcmp(brand, "hevx", 4) == 0 ||
@@ -516,130 +540,163 @@ static const char* get_image_extension(const uint8_t *data, size_t size) {
             memcmp(brand, "hevm", 4) == 0 ||
             memcmp(brand, "hevs", 4) == 0 ||
             memcmp(brand, "mif1", 4) == 0 ||
-            memcmp(brand, "msf1", 4) == 0) {
+            memcmp(brand, "msf1", 4) == 0)
+        {
             return ".heic";
         }
     }
 
     // ICO - 00 00 01 00 (icon) or 00 00 02 00 (cursor)
-    if (size >= 4 && data[0] == 0x00 && data[1] == 0x00 && 
-        (data[2] == 0x01 || data[2] == 0x02) && data[3] == 0x00) {
+    if (size >= 4 && data[0] == 0x00 && data[1] == 0x00 &&
+        (data[2] == 0x01 || data[2] == 0x02) && data[3] == 0x00)
+    {
         return data[2] == 0x01 ? ".ico" : ".cur";
     }
 
     // PSD - 38 42 50 53
-    if (size >= 4 && memcmp(data, "8BPS", 4) == 0) {
+    if (size >= 4 && memcmp(data, "8BPS", 4) == 0)
+    {
         return ".psd";
     }
 
     // GIMP XCF - gimp xcf (with version info)
-    if (size >= 9 && memcmp(data, "gimp xcf ", 9) == 0) {
+    if (size >= 9 && memcmp(data, "gimp xcf ", 9) == 0)
+    {
         return ".xcf";
     }
 
     // OpenEXR - 76 2F 31 01
-    if (size >= 4 && memcmp(data, "\x76\x2f\x31\x01", 4) == 0) {
+    if (size >= 4 && memcmp(data, "\x76\x2f\x31\x01", 4) == 0)
+    {
         return ".exr";
     }
 
     // Radiance HDR - #?RADIANCE or #?RGBE
-    if (size >= 10 && (memcmp(data, "#?RADIANCE", 10) == 0 || 
-                       memcmp(data, "#?RGBE", 6) == 0)) {
+    if (size >= 10 && (memcmp(data, "#?RADIANCE", 10) == 0 ||
+                       memcmp(data, "#?RGBE", 6) == 0))
+    {
         return ".hdr";
     }
 
     // JPEG 2000 - 00 00 00 0C 6A 50 20 20
-    if (size >= 8 && memcmp(data, "\x00\x00\x00\x0c\x6a\x50\x20\x20", 8) == 0) {
+    if (size >= 8 && memcmp(data, "\x00\x00\x00\x0c\x6a\x50\x20\x20", 8) == 0)
+    {
         return ".jp2";
     }
 
     // JPEG 2000 codestream - FF 4F FF 51
-    if (size >= 4 && memcmp(data, "\xff\x4f\xff\x51", 4) == 0) {
+    if (size >= 4 && memcmp(data, "\xff\x4f\xff\x51", 4) == 0)
+    {
         return ".j2k";
     }
 
     // JPEG XL - FF 0A or 00 00 00 0C 4A 58 4C 20
-    if (size >= 2 && memcmp(data, "\xff\x0a", 2) == 0) {
+    if (size >= 2 && memcmp(data, "\xff\x0a", 2) == 0)
+    {
         return ".jxl";
     }
-    if (size >= 12 && memcmp(data, "\x00\x00\x00\x0c\x4a\x58\x4c\x20\x0d\x0a\x87\x0a", 12) == 0) {
+    if (size >= 12 && memcmp(data, "\x00\x00\x00\x0c\x4a\x58\x4c\x20\x0d\x0a\x87\x0a", 12) == 0)
+    {
         return ".jxl";
     }
 
     // JPEG XR - II BC (little endian) or MM BC (big endian)
-    if (size >= 2 && ((data[0] == 0x49 && data[1] == 0x49) || (data[0] == 0x4D && data[1] == 0x4D))) {
+    if (size >= 2 && ((data[0] == 0x49 && data[1] == 0x49) || (data[0] == 0x4D && data[1] == 0x4D)))
+    {
         // Check for JPEG XR specific markers
-        if (size >= 4 && data[2] == 0xBC && (data[3] == 0x00 || data[3] == 0x01)) {
+        if (size >= 4 && data[2] == 0xBC && (data[3] == 0x00 || data[3] == 0x01))
+        {
             return ".jxr";
         }
     }
 
     // TGA - check footer signature (TRUEVISION-XFILE.)
-    if (size >= 26) {
+    if (size >= 26)
+    {
         const char *footer_sig = "TRUEVISION-XFILE.";
-        if (memcmp(data + size - 18, footer_sig, 18) == 0) {
+        if (memcmp(data + size - 18, footer_sig, 18) == 0)
+        {
             return ".tga";
         }
     }
     // TGA - heuristic check for headerless TGA (very basic)
-    if (size >= 18 && data[1] <= 1 && (data[2] == 1 || data[2] == 2 || data[2] == 3 || 
-                                        data[2] == 9 || data[2] == 10 || data[2] == 11)) {
+    if (size >= 18 && data[1] <= 1 && (data[2] == 1 || data[2] == 2 || data[2] == 3 || data[2] == 9 || data[2] == 10 || data[2] == 11))
+    {
         return ".tga";
     }
 
     // PCX - 0A XX 01
-    if (size >= 3 && data[0] == 0x0A && data[2] == 0x01) {
+    if (size >= 3 && data[0] == 0x0A && data[2] == 0x01)
+    {
         return ".pcx";
     }
 
     // SVG - check for XML declaration and svg tag
-    if (size >= 5 && (memcmp(data, "<?xml", 5) == 0 || memcmp(data, "<svg", 4) == 0)) {
+    if (size >= 5 && (memcmp(data, "<?xml", 5) == 0 || memcmp(data, "<svg", 4) == 0))
+    {
         // Look for svg tag within first 1000 bytes
         size_t search_len = size > 1000 ? 1000 : size;
-        for (size_t i = 0; i < search_len - 3; i++) {
-            if (memcmp(data + i, "<svg", 4) == 0) {
+        for (size_t i = 0; i < search_len - 3; i++)
+        {
+            if (memcmp(data + i, "<svg", 4) == 0)
+            {
                 return ".svg";
             }
         }
     }
 
     // PNM family
-    if (size >= 2 && data[0] == 'P') {
-        switch (data[1]) {
-            case '1': case '4': return ".pbm";  // Portable bitmap
-            case '2': case '5': return ".pgm";  // Portable graymap
-            case '3': case '6': return ".ppm";  // Portable pixmap
-            case '7': return ".pam";            // Portable arbitrary map
+    if (size >= 2 && data[0] == 'P')
+    {
+        switch (data[1])
+        {
+        case '1':
+        case '4':
+            return ".pbm"; // Portable bitmap
+        case '2':
+        case '5':
+            return ".pgm"; // Portable graymap
+        case '3':
+        case '6':
+            return ".ppm"; // Portable pixmap
+        case '7':
+            return ".pam"; // Portable arbitrary map
         }
     }
 
     // XBM - #define
-    if (size >= 7 && memcmp(data, "#define", 7) == 0) {
+    if (size >= 7 && memcmp(data, "#define", 7) == 0)
+    {
         return ".xbm";
     }
 
     // XPM - /* XPM */
-    if (size >= 9 && memcmp(data, "/* XPM */", 9) == 0) {
+    if (size >= 9 && memcmp(data, "/* XPM */", 9) == 0)
+    {
         return ".xpm";
     }
 
     // FITS - SIMPLE
-    if (size >= 6 && memcmp(data, "SIMPLE", 6) == 0) {
+    if (size >= 6 && memcmp(data, "SIMPLE", 6) == 0)
+    {
         return ".fits";
     }
 
     // FLIF - FLIF
-    if (size >= 4 && memcmp(data, "FLIF", 4) == 0) {
+    if (size >= 4 && memcmp(data, "FLIF", 4) == 0)
+    {
         return ".flif";
     }
 
     // QOI - qoif
-    if (size >= 4 && memcmp(data, "qoif", 4) == 0) {
+    if (size >= 4 && memcmp(data, "qoif", 4) == 0)
+    {
         return ".qoi";
     }
 
     // WBMP - 00 00 (followed by width and height)
-    if (size >= 4 && data[0] == 0x00 && data[1] == 0x00) {
+    if (size >= 4 && data[0] == 0x00 && data[1] == 0x00)
+    {
         return ".wbmp";
     }
 
@@ -647,41 +704,50 @@ static const char* get_image_extension(const uint8_t *data, size_t size) {
     return ".jpg";
 }
 
-static gchar *try_get_local_art(mpv_handle *mpv, char *path) {
+static gchar *try_get_local_art(mpv_handle *mpv, char *path)
+{
     gchar *dirname = g_path_get_dirname(path);
     gchar *out = NULL;
     gboolean found = FALSE;
-    
+
     // Calculate art_files_count locally instead of using the global variable
     const int local_art_files_count = sizeof(art_files) / sizeof(art_files[0]);
-    
+
     // First, try the predefined art file names
-    for (int i = 0; i < local_art_files_count && !found; i++) {
+    for (int i = 0; i < local_art_files_count && !found; i++)
+    {
         // Skip wildcard patterns for now
-        if (strstr(art_files[i], "{*}") != NULL) {
+        if (strstr(art_files[i], "{*}") != NULL)
+        {
             continue;
         }
-        
+
         gchar *filename = g_build_filename(dirname, art_files[i], NULL);
-        
-        if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+
+        if (g_file_test(filename, G_FILE_TEST_EXISTS))
+        {
             out = path_to_uri(mpv, filename);
             found = TRUE;
         }
-        
+
         g_free(filename);
     }
-    
+
     // If no predefined art files found, scan directory for any image files
-    if (!found) {
+    if (!found)
+    {
         GDir *dir = g_dir_open(dirname, 0, NULL);
-        if (dir) {
+        if (dir)
+        {
             const gchar *filename;
-            while ((filename = g_dir_read_name(dir)) != NULL && !found) {
+            while ((filename = g_dir_read_name(dir)) != NULL && !found)
+            {
                 // Use is_art_file function here to make it used
-                if (is_art_file(filename)) {
+                if (is_art_file(filename))
+                {
                     gchar *full_path = g_build_filename(dirname, filename, NULL);
-                    if (g_file_test(full_path, G_FILE_TEST_IS_REGULAR)) {
+                    if (g_file_test(full_path, G_FILE_TEST_IS_REGULAR))
+                    {
                         out = path_to_uri(mpv, full_path);
                         found = TRUE;
                     }
@@ -691,7 +757,7 @@ static gchar *try_get_local_art(mpv_handle *mpv, char *path) {
             g_dir_close(dir);
         }
     }
-    
+
     g_free(dirname);
     return out;
 }
@@ -733,7 +799,8 @@ static gchar *get_cache_dir()
     return cache_dir;
 }
 
-static gchar* generate_cache_filename(const char *path, const uint8_t *image_data, size_t image_size) {
+static gchar *generate_cache_filename(const char *path, const uint8_t *image_data, size_t image_size)
+{
     gchar *hash = g_compute_checksum_for_string(G_CHECKSUM_SHA256, path, -1);
     const char *ext = get_image_extension(image_data, image_size);
     gchar *filename = g_strconcat(hash, ext, NULL);
@@ -741,24 +808,29 @@ static gchar* generate_cache_filename(const char *path, const uint8_t *image_dat
     return filename;
 }
 
-static gchar* extract_embedded_art(AVFormatContext *context, const char *media_path) {
+static gchar *extract_embedded_art(AVFormatContext *context, const char *media_path)
+{
     AVPacket *packet = NULL;
     gchar *cache_path = NULL;
     gchar *uri = NULL;
-    
-    for (unsigned int i = 0; i < context->nb_streams; i++) {
-        if (context->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC) {
+
+    for (unsigned int i = 0; i < context->nb_streams; i++)
+    {
+        if (context->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC)
+        {
             packet = &context->streams[i]->attached_pic;
             break;
         }
     }
-    
-    if (!packet) {
+
+    if (!packet)
+    {
         return NULL;
     }
 
     gchar *cache_dir = get_cache_dir();
-    if (!cache_dir) {
+    if (!cache_dir)
+    {
         return NULL;
     }
 
@@ -766,11 +838,13 @@ static gchar* extract_embedded_art(AVFormatContext *context, const char *media_p
     gchar *cache_filename = generate_cache_filename(media_path, packet->data, packet->size);
     cache_path = g_build_filename(cache_dir, cache_filename, NULL);
     g_free(cache_filename);
-    
-    if (!g_file_test(cache_path, G_FILE_TEST_EXISTS)) {
+
+    if (!g_file_test(cache_path, G_FILE_TEST_EXISTS))
+    {
         GError *error = NULL;
-        if (!g_file_set_contents(cache_path, (const gchar*)packet->data, 
-                                packet->size, &error)) {
+        if (!g_file_set_contents(cache_path, (const gchar *)packet->data,
+                                 packet->size, &error))
+        {
             g_warning("Failed to write cover art to cache: %s", error->message);
             g_error_free(error);
             g_free(cache_path);
@@ -780,7 +854,7 @@ static gchar* extract_embedded_art(AVFormatContext *context, const char *media_p
     }
 
     uri = g_filename_to_uri(cache_path, NULL, NULL);
-    
+
     g_free(cache_path);
     g_free(cache_dir);
     return uri;
@@ -788,7 +862,8 @@ static gchar* extract_embedded_art(AVFormatContext *context, const char *media_p
 
 static gchar *try_get_embedded_art(char *path)
 {
-    if (!path) {
+    if (!path)
+    {
         g_warning("Null path provided for embedded art lookup");
         return NULL;
     }
@@ -880,32 +955,41 @@ static void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud)
 {
     char *path = mpv_get_property_string(mpv, "path");
 
-    if (!path) {
+    if (!path)
+    {
         return;
     }
 
     // Check cache using UserData instead of globals
-    if (!ud->cached_path || strcmp(path, ud->cached_path)) {
+    if (!ud->cached_path || strcmp(path, ud->cached_path))
+    {
         // Clear old cache
         mpv_free(ud->cached_path);
         g_free(ud->cached_art_url);
-        
+
         // Set new cache
         ud->cached_path = path;
 
-        if (g_str_has_prefix(path, "http")) {
+        if (g_str_has_prefix(path, "http"))
+        {
             ud->cached_art_url = try_get_youtube_thumbnail(path);
-        } else {
+        }
+        else
+        {
             ud->cached_art_url = try_get_embedded_art(path);
-            if (!ud->cached_art_url) {
+            if (!ud->cached_art_url)
+            {
                 ud->cached_art_url = try_get_local_art(mpv, path);
             }
         }
-    } else {
+    }
+    else
+    {
         mpv_free(path);
     }
 
-    if (ud->cached_art_url) {
+    if (ud->cached_art_url)
+    {
         g_variant_dict_insert(dict, "mpris:artUrl", "s", ud->cached_art_url);
     }
 }
@@ -1012,7 +1096,7 @@ static GVariant *create_metadata(UserData *ud)
     add_metadata_item_int(ud->mpv, &dict, "metadata/by-key/Disc", "xesam:discNumber");
 
     add_metadata_uri(ud->mpv, &dict);
-    add_metadata_art(ud->mpv, &dict, ud); 
+    add_metadata_art(ud->mpv, &dict, ud);
     add_metadata_content_created(ud->mpv, &dict);
 
     GVariant *result = g_variant_dict_end(&dict);
@@ -1165,7 +1249,8 @@ static void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
                                gpointer user_data)
 {
     UserData *ud = (UserData *)user_data;
-    if (!ud || !ud->mpv) {
+    if (!ud || !ud->mpv)
+    {
         g_warning("Invalid user data in method call");
         return;
     }
@@ -1541,7 +1626,8 @@ static void on_bus_acquired(GDBusConnection *connection,
     GError *error = NULL;
     UserData *ud = user_data;
 
-    if (!connection) {
+    if (!connection)
+    {
         g_printerr("D-Bus connection is NULL\n");
         return;
     }
@@ -1758,7 +1844,7 @@ static void wakeup_handler(void *fd)
 }
 
 // Plugin entry point
-int mpv_open_cplugin(mpv_handle *mpv) 
+int mpv_open_cplugin(mpv_handle *mpv)
 {
     GMainContext *ctx = NULL;
     GMainLoop *loop = NULL;
@@ -1771,45 +1857,51 @@ int mpv_open_cplugin(mpv_handle *mpv)
     int ret = -1; // Default to error
 
     // Validate input
-    if (!mpv) {
+    if (!mpv)
+    {
         g_printerr("MPV handle is NULL\n");
         return ret;
     }
 
     // Initialize context and loop
     ctx = g_main_context_new();
-    if (!ctx) {
+    if (!ctx)
+    {
         g_printerr("Failed to create main context\n");
         goto cleanup;
     }
 
     loop = g_main_loop_new(ctx, FALSE);
-    if (!loop) {
+    if (!loop)
+    {
         g_printerr("Failed to create main loop\n");
         goto cleanup;
     }
 
     // Load D-Bus introspection data
     introspection_data = g_dbus_node_info_new_for_xml(introspection_xml, &error);
-    if (error != NULL) {
+    if (error != NULL)
+    {
         g_printerr("Failed to parse introspection XML: %s\n", error->message);
         g_error_free(error);
         error = NULL;
         goto cleanup;
     }
 
-    if (!introspection_data) {
+    if (!introspection_data)
+    {
         g_printerr("Failed to create D-Bus introspection data\n");
         goto cleanup;
     }
 
     // Setup interface info
-    ud.root_interface_info = g_dbus_node_info_lookup_interface(introspection_data, 
-                                "org.mpris.MediaPlayer2");
-    ud.player_interface_info = g_dbus_node_info_lookup_interface(introspection_data, 
-                                "org.mpris.MediaPlayer2.Player");
-    
-    if (!ud.root_interface_info || !ud.player_interface_info) {
+    ud.root_interface_info = g_dbus_node_info_lookup_interface(introspection_data,
+                                                               "org.mpris.MediaPlayer2");
+    ud.player_interface_info = g_dbus_node_info_lookup_interface(introspection_data,
+                                                                 "org.mpris.MediaPlayer2.Player");
+
+    if (!ud.root_interface_info || !ud.player_interface_info)
+    {
         g_printerr("Failed to lookup D-Bus interfaces\n");
         goto cleanup;
     }
@@ -1820,7 +1912,8 @@ int mpv_open_cplugin(mpv_handle *mpv)
     ud.status = STATUS_STOPPED;
     ud.loop_status = LOOP_NONE;
     ud.changed_properties = g_hash_table_new(g_str_hash, g_str_equal);
-    if (!ud.changed_properties) {
+    if (!ud.changed_properties)
+    {
         g_printerr("Failed to create properties hash table\n");
         goto cleanup;
     }
@@ -1841,7 +1934,8 @@ int mpv_open_cplugin(mpv_handle *mpv)
                                &ud, NULL);
     g_main_context_pop_thread_default(ctx);
 
-    if (!ud.bus_id) {
+    if (!ud.bus_id)
+    {
         g_printerr("Failed to own D-Bus name\n");
         goto cleanup;
     }
@@ -1856,20 +1950,23 @@ int mpv_open_cplugin(mpv_handle *mpv)
         mpv_observe_property(mpv, 0, "loop-playlist", MPV_FORMAT_STRING) < 0 ||
         mpv_observe_property(mpv, 0, "duration", MPV_FORMAT_INT64) < 0 ||
         mpv_observe_property(mpv, 0, "shuffle", MPV_FORMAT_FLAG) < 0 ||
-        mpv_observe_property(mpv, 0, "fullscreen", MPV_FORMAT_FLAG) < 0) {
+        mpv_observe_property(mpv, 0, "fullscreen", MPV_FORMAT_FLAG) < 0)
+    {
         g_printerr("Failed to observe MPV properties\n");
         goto cleanup;
     }
 
     // Setup event pipe
-    if (!g_unix_open_pipe(pipe, FD_CLOEXEC, &error)) {
+    if (!g_unix_open_pipe(pipe, FD_CLOEXEC, &error))
+    {
         g_printerr("Failed to create pipe: %s\n", error->message);
         g_error_free(error);
         error = NULL;
         goto cleanup;
     }
 
-    if (fcntl(pipe[0], F_SETFL, O_NONBLOCK) == -1) {
+    if (fcntl(pipe[0], F_SETFL, O_NONBLOCK) == -1)
+    {
         g_printerr("Failed to set pipe non-blocking: %s\n", g_strerror(errno));
         goto cleanup;
     }
@@ -1878,7 +1975,8 @@ int mpv_open_cplugin(mpv_handle *mpv)
 
     // Create and attach pipe source
     mpv_pipe_source = g_unix_fd_source_new(pipe[0], G_IO_IN);
-    if (!mpv_pipe_source) {
+    if (!mpv_pipe_source)
+    {
         g_printerr("Failed to create pipe source\n");
         goto cleanup;
     }
@@ -1888,7 +1986,8 @@ int mpv_open_cplugin(mpv_handle *mpv)
 
     // Create and attach timeout source
     timeout_source = g_timeout_source_new(100);
-    if (!timeout_source) {
+    if (!timeout_source)
+    {
         g_printerr("Failed to create timeout source\n");
         goto cleanup;
     }
@@ -1902,18 +2001,22 @@ int mpv_open_cplugin(mpv_handle *mpv)
 
 cleanup:
     // Cleanup in reverse order of initialization
-    if (timeout_source) {
+    if (timeout_source)
+    {
         g_source_unref(timeout_source);
     }
 
-    if (mpv_pipe_source) {
+    if (mpv_pipe_source)
+    {
         g_source_unref(mpv_pipe_source);
     }
 
-    if (pipe[0] != -1) {
+    if (pipe[0] != -1)
+    {
         close(pipe[0]);
     }
-    if (pipe[1] != -1) {
+    if (pipe[1] != -1)
+    {
         close(pipe[1]);
     }
 
@@ -1922,36 +2025,45 @@ cleanup:
 
     cleanup_old_cache_files();
 
-    if (ud.connection) {
-        if (ud.root_interface_id) {
+    if (ud.connection)
+    {
+        if (ud.root_interface_id)
+        {
             g_dbus_connection_unregister_object(ud.connection, ud.root_interface_id);
         }
-        if (ud.player_interface_id) {
+        if (ud.player_interface_id)
+        {
             g_dbus_connection_unregister_object(ud.connection, ud.player_interface_id);
         }
     }
 
-    if (ud.bus_id) {
+    if (ud.bus_id)
+    {
         g_bus_unown_name(ud.bus_id);
     }
 
-    if (ud.changed_properties) {
+    if (ud.changed_properties)
+    {
         g_hash_table_unref(ud.changed_properties);
     }
 
-    if (ud.metadata) {
+    if (ud.metadata)
+    {
         g_variant_unref(ud.metadata);
     }
 
-    if (loop) {
+    if (loop)
+    {
         g_main_loop_unref(loop);
     }
 
-    if (ctx) {
+    if (ctx)
+    {
         g_main_context_unref(ctx);
     }
 
-    if (introspection_data) {
+    if (introspection_data)
+    {
         g_dbus_node_info_unref(introspection_data);
     }
 
