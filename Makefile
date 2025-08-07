@@ -12,7 +12,7 @@ BASE_LDFLAGS = $(shell $(PKG_CONFIG) --libs gio-2.0 gio-unix-2.0 glib-2.0 mpv li
 
 SCRIPTS_DIR := $(HOME)/.config/mpv/scripts
 
-SRC_DIR := mpris
+SRC_DIR := src
 PREFIX := /usr/local
 PLUGINDIR := $(PREFIX)/lib/mpv-mpris
 SYS_SCRIPTS_DIR := /etc/mpv/scripts
