@@ -63,7 +63,7 @@ const char art_files[][32] = {
     
     // High resolution variants
     "cover-large.jpg", "cover-large.png", "cover-hq.jpg", "cover-hq.png",
-    "front-large.jpg", "front-large.png", "front-hq.jpg", "front-hq.png",
+    "front-large.jpg", "front-large.png", "front-hq.jpg3", "front-hq.png",
     
     // Specific media player conventions
     "AlbumArt_{*}_Large.jpg", "AlbumArt_{*}_Small.jpg", // Windows Media Player

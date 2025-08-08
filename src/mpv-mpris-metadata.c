@@ -24,6 +24,7 @@
 
 #include "mpv-mpris-types.h"
 #include "mpv-mpris-metadata.h"
+#include "mpv-mpris-artwork.h"
 
 gchar *string_to_utf8(gchar *maybe_utf8)
 {

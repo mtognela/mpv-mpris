@@ -28,10 +28,13 @@
 #include "mpv-mpris-types.h"
 
 gboolean event_handler(int fd, GIOCondition condition, gpointer data);
+
 void wakeup_handler(void *fd);
 
 GVariant *set_playback_status(UserData *ud);
+
 void set_stopped_status(UserData *ud);
+
 void handle_property_change(const char *name, void *data, UserData *ud);
 
 #endif // MPV_MPRIS_EVENTS_H

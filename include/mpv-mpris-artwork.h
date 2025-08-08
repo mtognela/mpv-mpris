@@ -54,4 +54,11 @@ gchar *generate_cache_filename(const char *path, const uint8_t *image_data, size
 
 void cleanup_old_cache_files(void);
 
+gboolean is_art_file(const char *filename);
+
+gchar *try_get_embedded_art(char *path);
+
+gchar *try_get_youtube_thumbnail(const char *url);
+gchar *try_get_local_art_enhanced(mpv_handle *mpv, const char *path);
+
 #endif // MPV_MPRIS_ARTWORK_H

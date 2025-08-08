@@ -43,6 +43,7 @@ extern const char *LOOP_TRACK;
 extern const char *LOOP_PLAYLIST;
 
 extern const char *youtube_url_pattern;
+
 extern GRegex *youtube_url_regex;
 
 extern const char *supported_extensions[];
