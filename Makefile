@@ -1,3 +1,4 @@
+# Include the original Makefile
 PKG_CONFIG = pkg-config
 INSTALL := install
 MKDIR := mkdir
@@ -32,16 +33,41 @@ INCLUDE_FLAGS := -I$(INCLUDE_DIR)
 # User ID for install detection
 UID ?= $(shell id -u)
 
+# Zig-specific variables
+ZIG := zig
+ZIG_TARGET := zig-out/lib/libmpris.so
+ZIG_TEST_TARGET := zig-out/bin/mpv-mpris-test
+
 .PHONY: \
  install install-user install-system \
  uninstall uninstall-user uninstall-system \
- test \
- clean \
- debug
+ test test-zig test-c \
+ clean clean-zig clean-all \
+ debug debug-zig \
+ build-zig \
+ help
 
-# Main target - build the shared library directly from .c files
+# Main target - build the shared library directly from .c files (original)
 $(TARGET): $(SRCS) $(HEADERS)
 	$(CC) $(SRCS) -o $(TARGET) $(BASE_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(INCLUDE_FLAGS) $(BASE_LDFLAGS) $(LDFLAGS) -shared -fPIC
+
+# Zig build targets
+build-zig:
+	$(ZIG) build
+
+$(ZIG_TARGET): build-zig
+
+debug-zig:
+	$(ZIG) build debug
+
+test-zig: build-zig
+	$(ZIG) build test
+
+test-c: $(TARGET)
+	$(MAKE) -C test
+
+# Combined test target - run both C and Zig tests
+test: test-c test-zig
 
 # Install logic based on user privileges
 ifneq ($(UID),0)
@@ -52,13 +78,19 @@ install: install-system
 uninstall: uninstall-system
 endif
 
-# User installation
+# User installation - can install either regular or Zig-built version
 install-user: $(TARGET)
 	$(MKDIR) -p $(SCRIPTS_DIR)
 	$(INSTALL) -t $(SCRIPTS_DIR) $(TARGET)
 
+# Alternative: install Zig-built version
+install-user-zig: $(ZIG_TARGET)
+	$(MKDIR) -p $(SCRIPTS_DIR)
+	$(INSTALL) -t $(SCRIPTS_DIR) $(ZIG_TARGET)
+	cd $(SCRIPTS_DIR) && ln -sf libmpris.so mpris.so
+
 uninstall-user:
-	$(RM) -f $(SCRIPTS_DIR)/$(TARGET)
+	$(RM) -f $(SCRIPTS_DIR)/$(TARGET) $(SCRIPTS_DIR)/libmpris.so
 	-$(RMDIR) -p $(SCRIPTS_DIR) 2>/dev/null || true
 
 # System-wide installation
@@ -68,24 +100,33 @@ install-system: $(TARGET)
 	$(MKDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR)
 	$(LN) -sf $(PLUGINDIR)/$(TARGET) $(DESTDIR)$(SYS_SCRIPTS_DIR)
 
-uninstall-system:
-	$(RM) -f $(DESTDIR)$(SYS_SCRIPTS_DIR)/$(TARGET)
-	-$(RMDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR) 2>/dev/null || true
-	$(RM) -f $(DESTDIR)$(PLUGINDIR)/$(TARGET)
-	-$(RMDIR) -p $(DESTDIR)$(PLUGINDIR) 2>/dev/null || true
+install-system-zig: $(ZIG_TARGET)
+	$(MKDIR) -p $(DESTDIR)$(PLUGINDIR)
+	$(INSTALL) -t $(DESTDIR)$(PLUGINDIR) $(ZIG_TARGET)
+	cd $(DESTDIR)$(PLUGINDIR) && ln -sf libmpris.so mpris.so
+	$(MKDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR)
+	$(LN) -sf $(PLUGINDIR)/mpris.so $(DESTDIR)$(SYS_SCRIPTS_DIR)
 
-# Test target
-test: $(TARGET)
-	$(MAKE) -C test
+uninstall-system:
+	$(RM) -f $(DESTDIR)$(SYS_SCRIPTS_DIR)/$(TARGET) $(DESTDIR)$(SYS_SCRIPTS_DIR)/mpris.so
+	-$(RMDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR) 2>/dev/null || true
+	$(RM) -f $(DESTDIR)$(PLUGINDIR)/$(TARGET) $(DESTDIR)$(PLUGINDIR)/libmpris.so $(DESTDIR)$(PLUGINDIR)/mpris.so
+	-$(RMDIR) -p $(DESTDIR)$(PLUGINDIR) 2>/dev/null || true
 
 # Debug build with debug symbols and no optimization
 debug: BASE_CFLAGS := $(BASE_CFLAGS:-O2=-O0 -g -DDEBUG)
 debug: $(TARGET)
 
-# Clean target
+# Clean targets
 clean:
 	$(RM) -f $(TARGET)
 	$(MAKE) -C test clean
+
+clean-zig:
+	$(ZIG) build clean
+	$(RM) -rf zig-out zig-cache
+
+clean-all: clean clean-zig
 
 # Print variables for debugging the Makefile
 print-vars:
@@ -93,19 +134,35 @@ print-vars:
 	@echo "HEADERS: $(HEADERS)"
 	@echo "BASE_CFLAGS: $(BASE_CFLAGS)"
 	@echo "INCLUDE_FLAGS: $(INCLUDE_FLAGS)"
+	@echo "ZIG: $(ZIG)"
+	@echo "ZIG_TARGET: $(ZIG_TARGET)"
 
 # Help target
 help:
 	@echo "Available targets:"
-	@echo "  $(TARGET)          - Build the mpris.so plugin (default)"
+	@echo ""
+	@echo "Building:"
+	@echo "  $(TARGET)          - Build mpris.so with GCC (default, original)"
+	@echo "  build-zig       - Build with Zig compiler"
+	@echo "  debug           - Build with GCC debug symbols"
+	@echo "  debug-zig       - Build with Zig debug symbols"
+	@echo ""
+	@echo "Testing:"
+	@echo "  test            - Run both C and Zig tests"
+	@echo "  test-c          - Run original C tests"
+	@echo "  test-zig        - Run Zig-based tests"
+	@echo ""
+	@echo "Installation:"
 	@echo "  install         - Install plugin (user or system based on privileges)"
-	@echo "  install-user    - Install plugin to user directory"
-	@echo "  install-system  - Install plugin system-wide"
+	@echo "  install-user    - Install GCC-built plugin to user directory"
+	@echo "  install-user-zig- Install Zig-built plugin to user directory"
+	@echo "  install-system  - Install GCC-built plugin system-wide"
+	@echo "  install-system-zig- Install Zig-built plugin system-wide"
 	@echo "  uninstall       - Uninstall plugin"
-	@echo "  uninstall-user  - Uninstall from user directory"
-	@echo "  uninstall-system- Uninstall from system"
-	@echo "  test           - Run tests"
-	@echo "  debug          - Build with debug symbols"
-	@echo "  clean          - Remove built files"
-	@echo "  print-vars     - Print Makefile variables for debugging"
-	@echo "  help           - Show this help message"
+	@echo ""
+	@echo "Maintenance:"
+	@echo "  clean           - Remove GCC build files"
+	@echo "  clean-zig       - Remove Zig build files"
+	@echo "  clean-all       - Remove all build files"
+	@echo "  print-vars      - Print Makefile variables for debugging"
+	@echo "  help            - Show this help message"

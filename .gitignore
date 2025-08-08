@@ -12,5 +12,5 @@ mpris.so
 .vscode/
 _temp*/
 debug*
-test/zig/.zig-cache/
-test/zig/zig-out/
+.zig-cache/
+zig-out/
