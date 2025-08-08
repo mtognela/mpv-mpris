@@ -10,8 +10,7 @@ extern const char art_files[][32];
 // Supported image extensions
 extern const char *supported_extensions[];
 
-
-static gchar* extract_embedded_art(AVFormatContext *context, const char *media_path) {
+gchar* extract_embedded_art(AVFormatContext *context, const char *media_path) {
     AVPacket *packet = NULL;
     gchar *cache_path = NULL;
     gchar *uri = NULL;

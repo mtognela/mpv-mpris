@@ -12,11 +12,9 @@
 #include <inttypes.h>
 #include <string.h>
 
-// Cache configuration
 #define CACHE_MAX_AGE_DAYS 15
 #define SECONDS_PER_DAY 86400
 
-// MPRIS status constants (declare as extern, define in one .c file)
 extern const char *STATUS_PLAYING;
 extern const char *STATUS_PAUSED;
 extern const char *STATUS_STOPPED;
@@ -24,17 +22,13 @@ extern const char *LOOP_NONE;
 extern const char *LOOP_TRACK;
 extern const char *LOOP_PLAYLIST;
 
-// YouTube URL pattern and regex (declare as extern, define in one .c file)
 extern const char *youtube_url_pattern;
 extern GRegex *youtube_url_regex;
 
-// Supported image extensions (declare as extern, define in one .c file)
 extern const char *supported_extensions[];
 
-// Album art file patterns (declare as extern, define in one .c file) 
 extern const char art_files[][32];
 
-// D-Bus introspection XML (declare as extern, define in one .c file)
 extern const char *introspection_xml;
 
 // Main user data structure
@@ -61,7 +55,6 @@ typedef struct UserData {
     gchar *cached_art_url; // owned by glib
 } UserData;
 
-// MPRIS status constants (declare as extern, define in one .c file)
 extern const char *STATUS_PLAYING;
 extern const char *STATUS_PAUSED;
 extern const char *STATUS_STOPPED;
@@ -69,20 +62,15 @@ extern const char *LOOP_NONE;
 extern const char *LOOP_TRACK;
 extern const char *LOOP_PLAYLIST;
 
-// YouTube URL pattern and regex (declare as extern, define in one .c file)
 extern const char *youtube_url_pattern;
 extern GRegex *youtube_url_regex;
 
-// Supported image extensions (declare as extern, define in one .c file)
 extern const char *supported_extensions[];
 
-// Album art file patterns (declare as extern, define in one .c file) 
 extern const char art_files[][32];
 
-// D-Bus introspection XML (declare as extern, define in one .c file)
 extern const char *introspection_xml;
 
-// Global mutex for metadata access (declare as extern, define in one .c file)
 extern GMutex metadata_mutex;
 
 #endif // MPV_MPRIS_TYPES_H

@@ -2,11 +2,6 @@
 #include "mpv-mpris-dbus.h"
 #include "mpv-mpris-metadata.h"
 
-/**
- * Set the playback status based on current state
- * @param ud User data structure
- * @return GVariant containing the playback status string
- */
 GVariant *set_playback_status(UserData *ud)
 {
     if (ud->idle)
@@ -24,10 +19,6 @@ GVariant *set_playback_status(UserData *ud)
     return g_variant_new_string(ud->status);
 }
 
-/**
- * Set status to stopped and emit property change
- * @param ud User data structure
- */
 void set_stopped_status(UserData *ud)
 {
     const char *prop_name = "PlaybackStatus";
@@ -41,12 +32,6 @@ void set_stopped_status(UserData *ud)
     emit_property_changes(ud);
 }
 
-/**
- * Handle MPV property changes and update MPRIS properties
- * @param name Property name that changed
- * @param data New property value
- * @param ud User data structure
- */
 void handle_property_change(const char *name, void *data, UserData *ud)
 {
     const char *prop_name = NULL;
@@ -161,13 +146,6 @@ void handle_property_change(const char *name, void *data, UserData *ud)
     }
 }
 
-/**
- * Handle MPV events and update MPRIS state accordingly
- * @param fd File descriptor for MPV event notifications
- * @param condition GIO condition flags
- * @param data User data structure
- * @return TRUE to continue watching events
- */
 gboolean event_handler(int fd, G_GNUC_UNUSED GIOCondition condition, gpointer data)
 {
     UserData *ud = data;
@@ -216,10 +194,6 @@ gboolean event_handler(int fd, G_GNUC_UNUSED GIOCondition condition, gpointer da
     return TRUE;
 }
 
-/**
- * MPV wakeup callback to notify main loop of events
- * @param fd Pointer to file descriptor to write to
- */
 void wakeup_handler(void *fd)
 {
     (void)!write(*((int *)fd), "0", 1);

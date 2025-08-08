@@ -7,9 +7,6 @@ GDBusInterfaceVTable vtable_root = {
 GDBusInterfaceVTable vtable_player = {
     method_call_player, get_property_player, set_property_player, {0}};
 
-/**
- * Handle method calls on the root MPRIS interface
- */
 void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
                              G_GNUC_UNUSED const char *sender,
                              G_GNUC_UNUSED const char *object_path,
@@ -39,9 +36,6 @@ void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
     }
 }
 
-/**
- * Get property values for the root MPRIS interface
- */
 GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
                                    G_GNUC_UNUSED const char *sender,
                                    G_GNUC_UNUSED const char *object_path,
@@ -119,9 +113,6 @@ GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
     return ret;
 }
 
-/**
- * Set property values for the root MPRIS interface
- */
 gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
                                   G_GNUC_UNUSED const char *sender,
                                   G_GNUC_UNUSED const char *object_path,
@@ -148,9 +139,6 @@ gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
     return TRUE;
 }
 
-/**
- * Handle method calls on the player MPRIS interface
- */
 void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
                                G_GNUC_UNUSED const char *sender,
                                G_GNUC_UNUSED const char *_object_path,
@@ -258,9 +246,6 @@ void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     }
 }
 
-/**
- * Get property values for the player MPRIS interface
- */
 GVariant *get_property_player(G_GNUC_UNUSED GDBusConnection *connection,
                                      G_GNUC_UNUSED const char *sender,
                                      G_GNUC_UNUSED const char *object_path,
@@ -359,9 +344,6 @@ GVariant *get_property_player(G_GNUC_UNUSED GDBusConnection *connection,
     return ret;
 }
 
-/**
- * Set property values for the player MPRIS interface
- */
 gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
                                     G_GNUC_UNUSED const char *sender,
                                     G_GNUC_UNUSED const char *object_path,
@@ -431,11 +413,6 @@ gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
     return TRUE;
 }
 
-/**
- * Emit property change signals on D-Bus
- * @param data User data containing changed properties
- * @return TRUE to continue the timeout
- */
 gboolean emit_property_changes(gpointer data)
 {
     UserData *ud = (UserData *)data;
@@ -480,10 +457,7 @@ gboolean emit_property_changes(gpointer data)
     return TRUE;
 }
 
-/**
- * Emit the Seeked signal
- * @param ud User data structure
- */
+
 void emit_seeked_signal(UserData *ud)
 {
     GVariant *params;
@@ -506,9 +480,6 @@ void emit_seeked_signal(UserData *ud)
     }
 }
 
-/**
- * Called when D-Bus name is acquired
- */
 void on_bus_acquired(GDBusConnection *connection,
                             G_GNUC_UNUSED const char *name,
                             gpointer user_data)
@@ -541,9 +512,6 @@ void on_bus_acquired(GDBusConnection *connection,
     }
 }
 
-/**
- * Called when D-Bus name is lost
- */
 void on_name_lost(GDBusConnection *connection,
                          G_GNUC_UNUSED const char *_name,
                          gpointer user_data)

@@ -3,14 +3,11 @@
 
 #include "mpv-mpris-types.h"
 
-// Main metadata creation function
 GVariant *create_metadata(UserData *ud);
 
-// String utility functions
 gchar *string_to_utf8(gchar *maybe_utf8);
 gchar *path_to_uri(mpv_handle *mpv, char *path);
 
-// Metadata helper functions
 void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
                              const char *property, const char *tag);
 void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
@@ -21,7 +18,6 @@ void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict);
 void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud);
 void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict);
 
-// Stub artwork functions (implement these if you want artwork support)
 gchar *try_get_youtube_thumbnail(const char *url);
 gchar *try_get_embedded_art(const char *path);
 gchar *try_get_local_art_enhanced(mpv_handle *mpv, const char *path);
@@ -30,10 +26,8 @@ gchar *try_get_local_art_enhanced(mpv_handle *mpv, const char *path);
 gboolean event_handler(int fd, GIOCondition condition, gpointer data);
 void wakeup_handler(void *fd);
 
-// From mpv-mpris-metadata.c
 GVariant *create_metadata(UserData *ud);
 
-// Missing artwork functions - add stub implementations
 gchar *extract_embedded_art(AVFormatContext *context, const char *path);
 gboolean is_art_file(const char *filename);
 

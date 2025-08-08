@@ -1,11 +1,6 @@
 #include "mpv-mpris-types.h"
 #include "mpv-mpris-metadata.h"
 
-/**
- * Convert a potentially non-UTF8 string to valid UTF8
- * @param maybe_utf8 Input string that may or may not be UTF8
- * @return Valid UTF8 string (must be freed with g_free)
- */
 gchar *string_to_utf8(gchar *maybe_utf8)
 {
     gchar *attempted_validation;
@@ -22,12 +17,6 @@ gchar *string_to_utf8(gchar *maybe_utf8)
     }
 }
 
-/**
- * Convert a file path to a URI, handling both absolute and relative paths
- * @param mpv MPV handle for getting working directory
- * @param path File path to convert
- * @return URI string (must be freed with g_free), or NULL on error
- */
 gchar *path_to_uri(mpv_handle *mpv, char *path)
 {
     #if GLIB_CHECK_VERSION(2, 58, 0)
@@ -69,13 +58,6 @@ gchar *path_to_uri(mpv_handle *mpv, char *path)
     #endif
 }
 
-/**
- * Add a string metadata item to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- * @param property MPV property name
- * @param tag MPRIS metadata tag name
- */
 void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
                                      const char *property, const char *tag)
 {
@@ -89,13 +71,6 @@ void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
     }
 }
 
-/**
- * Add an integer metadata item to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- * @param property MPV property name
- * @param tag MPRIS metadata tag name
- */
 void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
                                   const char *property, const char *tag)
 {
@@ -107,13 +82,6 @@ void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
     }
 }
 
-/**
- * Add a string list metadata item to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- * @param property MPV property name
- * @param tag MPRIS metadata tag name
- */
 void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
                                           const char *property, const char *tag)
 {
@@ -141,11 +109,6 @@ void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
     }
 }
 
-/**
- * Add URI metadata to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- */
 void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
 {
     char *path;
@@ -173,12 +136,6 @@ void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
     mpv_free(path);
 }
 
-/**
- * Add album art metadata to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- * @param ud User data containing cached art information
- */
 void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud)
 {
     char *path = mpv_get_property_string(mpv, "path");
@@ -213,11 +170,6 @@ void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud)
     }
 }
 
-/**
- * Add content creation date metadata to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- */
 void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict)
 {
     char *date_str = mpv_get_property_string(mpv, "metadata/by-key/Date");
@@ -252,11 +204,6 @@ void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict)
     mpv_free(date_str);
 }
 
-/**
- * Create complete MPRIS metadata variant
- * @param ud User data structure
- * @return GVariant containing all metadata (caller must unref)
- */
 GVariant *create_metadata(UserData *ud)
 {
     GVariantDict dict;
