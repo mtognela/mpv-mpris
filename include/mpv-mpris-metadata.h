@@ -34,12 +34,17 @@ gchar *path_to_uri(mpv_handle *mpv, char *path);
 
 void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
                              const char *property, const char *tag);
+
 void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
                           const char *property, const char *tag);
+
 void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
                                   const char *property, const char *tag);
+
 void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict);
+
 void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud);
+
 void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict);
 
 void wakeup_handler(void *fd);
