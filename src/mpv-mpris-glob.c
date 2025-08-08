@@ -1,4 +1,29 @@
+/*
+    MIT License
+
+    Copyright (c) 2025 Mattia Tognela
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+*/
+
 #include "mpv-mpris-types.h"
+#include "mpv-mpris-dbus.h"
 
 const char art_files[][32] = {
     // Windows standard
@@ -60,6 +85,12 @@ const char *youtube_url_pattern =
     "^https?:\\/\\/(?:youtu.be\\/|(?:www\\.)?youtube\\.com\\/watch\\?v=)(?<id>[a-zA-Z0-9_-]*)\\??.*";
 
 GRegex *youtube_url_regex;
+
+GDBusInterfaceVTable vtable_root = {
+    method_call_root, get_property_root, set_property_root, {0}};
+
+GDBusInterfaceVTable vtable_player = {
+    method_call_player, get_property_player, set_property_player, {0}};
 
 
 const char *introspection_xml =
