@@ -1,11 +1,8 @@
-/*
-    MIT License - MPV MPRIS Bridge - D-Bus Interface Functions
-*/
-
 #ifndef MPV_MPRIS_DBUS_H
 #define MPV_MPRIS_DBUS_H
 
 #include "mpv-mpris-types.h"
+#include "mpv-mpris-metadata.h"
 
 // D-Bus interface vtables (declare as extern, define in .c file)
 extern GDBusInterfaceVTable vtable_root;

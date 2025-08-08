@@ -1,6 +1,15 @@
 #include "mpv-mpris-types.h"
 #include "mpv-mpris-dbus.h"
 
+GDBusInterfaceVTable vtable_root = {
+    method_call_root, get_property_root, set_property_root, {0}};
+
+GDBusInterfaceVTable vtable_player = {
+    method_call_player, get_property_player, set_property_player, {0}};
+
+/**
+ * Handle method calls on the root MPRIS interface
+ */
 void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
                              G_GNUC_UNUSED const char *sender,
                              G_GNUC_UNUSED const char *object_path,
@@ -30,6 +39,9 @@ void method_call_root(G_GNUC_UNUSED GDBusConnection *connection,
     }
 }
 
+/**
+ * Get property values for the root MPRIS interface
+ */
 GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
                                    G_GNUC_UNUSED const char *sender,
                                    G_GNUC_UNUSED const char *object_path,
@@ -107,6 +119,9 @@ GVariant *get_property_root(G_GNUC_UNUSED GDBusConnection *connection,
     return ret;
 }
 
+/**
+ * Set property values for the root MPRIS interface
+ */
 gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
                                   G_GNUC_UNUSED const char *sender,
                                   G_GNUC_UNUSED const char *object_path,
@@ -133,6 +148,9 @@ gboolean set_property_root(G_GNUC_UNUSED GDBusConnection *connection,
     return TRUE;
 }
 
+/**
+ * Handle method calls on the player MPRIS interface
+ */
 void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
                                G_GNUC_UNUSED const char *sender,
                                G_GNUC_UNUSED const char *_object_path,
@@ -143,12 +161,6 @@ void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
                                gpointer user_data)
 {
     UserData *ud = (UserData *)user_data;
-    if (!ud || !ud->mpv)
-    {
-        g_warning("Invalid user data in method call");
-        return;
-    }
-
     if (g_strcmp0(method_name, "Pause") == 0)
     {
         int paused = TRUE;
@@ -246,6 +258,110 @@ void method_call_player(G_GNUC_UNUSED GDBusConnection *connection,
     }
 }
 
+/**
+ * Get property values for the player MPRIS interface
+ */
+GVariant *get_property_player(G_GNUC_UNUSED GDBusConnection *connection,
+                                     G_GNUC_UNUSED const char *sender,
+                                     G_GNUC_UNUSED const char *object_path,
+                                     G_GNUC_UNUSED const char *interface_name,
+                                     const char *property_name,
+                                     GError **error,
+                                     gpointer user_data)
+{
+    UserData *ud = (UserData *)user_data;
+    GVariant *ret;
+    if (g_strcmp0(property_name, "PlaybackStatus") == 0)
+    {
+        ret = g_variant_new_string(ud->status);
+    }
+    else if (g_strcmp0(property_name, "LoopStatus") == 0)
+    {
+        ret = g_variant_new_string(ud->loop_status);
+    }
+    else if (g_strcmp0(property_name, "Rate") == 0)
+    {
+        double rate;
+        mpv_get_property(ud->mpv, "speed", MPV_FORMAT_DOUBLE, &rate);
+        ret = g_variant_new_double(rate);
+    }
+    else if (g_strcmp0(property_name, "Shuffle") == 0)
+    {
+        int shuffle;
+        mpv_get_property(ud->mpv, "shuffle", MPV_FORMAT_FLAG, &shuffle);
+        ret = g_variant_new_boolean(shuffle);
+    }
+    else if (g_strcmp0(property_name, "Metadata") == 0)
+    {
+        if (!ud->metadata)
+        {
+            ud->metadata = create_metadata(ud);
+        }
+        // Increase reference count to prevent it from being freed after returning
+        g_variant_ref(ud->metadata);
+        ret = ud->metadata;
+    }
+    else if (g_strcmp0(property_name, "Volume") == 0)
+    {
+        double volume;
+        mpv_get_property(ud->mpv, "volume", MPV_FORMAT_DOUBLE, &volume);
+        volume /= 100;
+        ret = g_variant_new_double(volume);
+    }
+    else if (g_strcmp0(property_name, "Position") == 0)
+    {
+        double position_s;
+        int64_t position_us;
+        mpv_get_property(ud->mpv, "time-pos", MPV_FORMAT_DOUBLE, &position_s);
+        position_us = position_s * 1000000.0; // s -> us
+        ret = g_variant_new_int64(position_us);
+    }
+    else if (g_strcmp0(property_name, "MinimumRate") == 0)
+    {
+        ret = g_variant_new_double(0.01);
+    }
+    else if (g_strcmp0(property_name, "MaximumRate") == 0)
+    {
+        ret = g_variant_new_double(100);
+    }
+    else if (g_strcmp0(property_name, "CanGoNext") == 0)
+    {
+        ret = g_variant_new_boolean(TRUE);
+    }
+    else if (g_strcmp0(property_name, "CanGoPrevious") == 0)
+    {
+        ret = g_variant_new_boolean(TRUE);
+    }
+    else if (g_strcmp0(property_name, "CanPlay") == 0)
+    {
+        ret = g_variant_new_boolean(TRUE);
+    }
+    else if (g_strcmp0(property_name, "CanPause") == 0)
+    {
+        ret = g_variant_new_boolean(TRUE);
+    }
+    else if (g_strcmp0(property_name, "CanSeek") == 0)
+    {
+        ret = g_variant_new_boolean(TRUE);
+    }
+    else if (g_strcmp0(property_name, "CanControl") == 0)
+    {
+        ret = g_variant_new_boolean(TRUE);
+    }
+    else
+    {
+        ret = NULL;
+        g_set_error(error, G_DBUS_ERROR,
+                    G_DBUS_ERROR_UNKNOWN_PROPERTY,
+                    "Unknown property %s", property_name);
+    }
+
+    return ret;
+}
+
+/**
+ * Set property values for the player MPRIS interface
+ */
 gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
                                     G_GNUC_UNUSED const char *sender,
                                     G_GNUC_UNUSED const char *object_path,
@@ -315,6 +431,11 @@ gboolean set_property_player(G_GNUC_UNUSED GDBusConnection *connection,
     return TRUE;
 }
 
+/**
+ * Emit property change signals on D-Bus
+ * @param data User data containing changed properties
+ * @return TRUE to continue the timeout
+ */
 gboolean emit_property_changes(gpointer data)
 {
     UserData *ud = (UserData *)data;
@@ -359,6 +480,10 @@ gboolean emit_property_changes(gpointer data)
     return TRUE;
 }
 
+/**
+ * Emit the Seeked signal
+ * @param ud User data structure
+ */
 void emit_seeked_signal(UserData *ud)
 {
     GVariant *params;
@@ -381,20 +506,15 @@ void emit_seeked_signal(UserData *ud)
     }
 }
 
-// Register D-Bus object and interfaces
+/**
+ * Called when D-Bus name is acquired
+ */
 void on_bus_acquired(GDBusConnection *connection,
                             G_GNUC_UNUSED const char *name,
                             gpointer user_data)
 {
     GError *error = NULL;
     UserData *ud = user_data;
-
-    if (!connection)
-    {
-        g_printerr("D-Bus connection is NULL\n");
-        return;
-    }
-
     ud->connection = connection;
 
     ud->root_interface_id =
@@ -421,6 +541,9 @@ void on_bus_acquired(GDBusConnection *connection,
     }
 }
 
+/**
+ * Called when D-Bus name is lost
+ */
 void on_name_lost(GDBusConnection *connection,
                          G_GNUC_UNUSED const char *_name,
                          gpointer user_data)

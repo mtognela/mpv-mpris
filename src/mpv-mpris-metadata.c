@@ -1,6 +1,12 @@
 #include "mpv-mpris-types.h"
+#include "mpv-mpris-metadata.h"
 
-static gchar *string_to_utf8(gchar *maybe_utf8)
+/**
+ * Convert a potentially non-UTF8 string to valid UTF8
+ * @param maybe_utf8 Input string that may or may not be UTF8
+ * @return Valid UTF8 string (must be freed with g_free)
+ */
+gchar *string_to_utf8(gchar *maybe_utf8)
 {
     gchar *attempted_validation;
     attempted_validation = g_utf8_make_valid(maybe_utf8, -1);
@@ -16,152 +22,81 @@ static gchar *string_to_utf8(gchar *maybe_utf8)
     }
 }
 
-static gchar *path_to_uri(mpv_handle *mpv, char *path)
+/**
+ * Convert a file path to a URI, handling both absolute and relative paths
+ * @param mpv MPV handle for getting working directory
+ * @param path File path to convert
+ * @return URI string (must be freed with g_free), or NULL on error
+ */
+gchar *path_to_uri(mpv_handle *mpv, char *path)
 {
-    if (!path)
-    {
-        return NULL;
-    }
-
-    gchar *uri = NULL;
-
-#if GLIB_CHECK_VERSION(2, 58, 0)
-    char *working_dir = mpv_get_property_string(mpv, "working-directory");
-    if (!working_dir)
-    {
-        g_warning("Failed to get working directory");
-        return NULL;
-    }
-
-    gchar *canonical = g_canonicalize_filename(path, working_dir);
-    mpv_free(working_dir);
-
-    if (!canonical)
-    {
-        g_warning("Failed to canonicalize path");
-        return NULL;
-    }
-
-    uri = g_filename_to_uri(canonical, NULL, NULL);
-    g_free(canonical);
-#else
-    // for compatibility with older versions of glib
-    if (g_path_is_absolute(path))
-    {
-        uri = g_filename_to_uri(path, NULL, NULL);
-        if (!uri)
-        {
-            g_warning("Failed to convert absolute path to URI: %s", path);
-        }
-    }
-    else
-    {
-        char *working_dir = NULL;
-        gchar *absolute = NULL;
-        GError *error = NULL;
+    #if GLIB_CHECK_VERSION(2, 58, 0)
+        // version which uses g_canonicalize_filename which expands .. and .
+        // and makes the uris neater
+        char *working_dir;
+        gchar *canonical;
+        gchar *uri;
 
         working_dir = mpv_get_property_string(mpv, "working-directory");
-        if (!working_dir)
-        {
-            g_warning("Failed to get working directory");
-            goto legacy_cleanup;
-        }
+        canonical = g_canonicalize_filename(path, working_dir);
+        uri = g_filename_to_uri(canonical, NULL, NULL);
 
-        absolute = g_build_filename(working_dir, path, NULL);
-        if (!absolute)
-        {
-            g_warning("Failed to build absolute path");
-            goto legacy_cleanup;
-        }
+        mpv_free(working_dir);
+        g_free(canonical);
 
-        uri = g_filename_to_uri(absolute, NULL, &error);
-        if (!uri)
+        return uri;
+    #else
+        // for compatibility with older versions of glib
+        gchar *converted;
+        if (g_path_is_absolute(path))
         {
-            g_warning("Failed to convert path to URI: %s (Error: %s)",
-                      absolute, error ? error->message : "unknown error");
-            if (error)
-            {
-                g_error_free(error);
-            }
+            converted = g_filename_to_uri(path, NULL, NULL);
         }
-
-    legacy_cleanup:
-        if (working_dir)
+        else
         {
+            char *working_dir;
+            gchar *absolute;
+
+            working_dir = mpv_get_property_string(mpv, "working-directory");
+            absolute = g_build_filename(working_dir, path, NULL);
+            converted = g_filename_to_uri(absolute, NULL, NULL);
+
             mpv_free(working_dir);
-        }
-        if (absolute)
-        {
             g_free(absolute);
         }
-    }
-#endif
 
-    if (!uri)
-    {
-        g_warning("Failed to convert path to URI: %s", path);
-    }
-
-    return uri;
+        return converted;
+    #endif
 }
 
-static void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
-{
-    char *path;
-    char *uri;
-
-    path = mpv_get_property_string(mpv, "path");
-    if (!path)
-    {
-        return;
-    }
-
-    uri = g_uri_parse_scheme(path);
-    if (uri)
-    {
-        g_variant_dict_insert(dict, "xesam:url", "s", path);
-        g_free(uri);
-    }
-    else
-    {
-        gchar *converted = path_to_uri(mpv, path);
-        g_variant_dict_insert(dict, "xesam:url", "s", converted);
-        g_free(converted);
-    }
-
-    mpv_free(path);
-}
-
-static void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
+/**
+ * Add a string metadata item to the variant dictionary
+ * @param mpv MPV handle
+ * @param dict Variant dictionary to add to
+ * @param property MPV property name
+ * @param tag MPRIS metadata tag name
+ */
+void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
                                      const char *property, const char *tag)
 {
-    if (!mpv || !dict || !property || !tag)
-    {
-        g_warning("Invalid arguments to add_metadata_item_string");
-        return;
-    }
-
     char *temp = mpv_get_property_string(mpv, property);
-    if (!temp)
+    if (temp)
     {
-        g_debug("Property %s not available", property);
-        return;
-    }
-
-    char *utf8 = string_to_utf8(temp);
-    if (!utf8)
-    {
+        char *utf8 = string_to_utf8(temp);
+        g_variant_dict_insert(dict, tag, "s", utf8);
+        g_free(utf8);
         mpv_free(temp);
-        g_warning("Failed to convert %s to UTF-8", property);
-        return;
     }
-
-    g_variant_dict_insert(dict, tag, "s", utf8);
-    g_free(utf8);
-    mpv_free(temp);
 }
 
-static void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
+/**
+ * Add an integer metadata item to the variant dictionary
+ * @param mpv MPV handle
+ * @param dict Variant dictionary to add to
+ * @param property MPV property name
+ * @param tag MPRIS metadata tag name
+ */
+void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
                                   const char *property, const char *tag)
 {
     int64_t value;
@@ -172,7 +107,14 @@ static void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
     }
 }
 
-static void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
+/**
+ * Add a string list metadata item to the variant dictionary
+ * @param mpv MPV handle
+ * @param dict Variant dictionary to add to
+ * @param property MPV property name
+ * @param tag MPRIS metadata tag name
+ */
+void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
                                           const char *property, const char *tag)
 {
     char *temp = mpv_get_property_string(mpv, property);
@@ -199,51 +141,84 @@ static void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
     }
 }
 
-
-static void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud)
+/**
+ * Add URI metadata to the variant dictionary
+ * @param mpv MPV handle
+ * @param dict Variant dictionary to add to
+ */
+void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict)
 {
-    char *path = mpv_get_property_string(mpv, "path");
+    char *path;
+    char *uri;
 
+    path = mpv_get_property_string(mpv, "path");
     if (!path)
     {
         return;
     }
 
-    // Check cache using UserData instead of globals
-    if (!ud->cached_path || strcmp(path, ud->cached_path))
+    uri = g_uri_parse_scheme(path);
+    if (uri)
     {
-        // Clear old cache
-        mpv_free(ud->cached_path);
-        g_free(ud->cached_art_url);
-
-        // Set new cache
-        ud->cached_path = path;
-
-        if (g_str_has_prefix(path, "http"))
-        {
-            ud->cached_art_url = try_get_youtube_thumbnail(path);
-        }
-        else
-        {
-            ud->cached_art_url = try_get_embedded_art(path);
-            if (!ud->cached_art_url)
-            {
-                ud->cached_art_url = try_get_local_art(mpv, path);
-            }
-        }
+        g_variant_dict_insert(dict, "xesam:url", "s", path);
+        g_free(uri);
     }
     else
     {
+        gchar *converted = path_to_uri(mpv, path);
+        g_variant_dict_insert(dict, "xesam:url", "s", converted);
+        g_free(converted);
+    }
+
+    mpv_free(path);
+}
+
+/**
+ * Add album art metadata to the variant dictionary
+ * @param mpv MPV handle
+ * @param dict Variant dictionary to add to
+ * @param ud User data containing cached art information
+ */
+void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud)
+{
+    char *path = mpv_get_property_string(mpv, "path");
+
+    if (!path) {
+        return;
+    }
+
+    // Check cache using UserData instead of globals
+    if (!ud->cached_path || strcmp(path, ud->cached_path)) {
+        // Clear old cache
+        mpv_free(ud->cached_path);
+        g_free(ud->cached_art_url);
+        
+        // Set new cache
+        ud->cached_path = path;
+
+        if (g_str_has_prefix(path, "http")) {
+            ud->cached_art_url = try_get_youtube_thumbnail(path);
+        } else {
+            ud->cached_art_url = try_get_embedded_art(path);
+            if (!ud->cached_art_url) {
+                ud->cached_art_url = try_get_local_art_enhanced(mpv, path);
+            }
+        }
+    } else {
         mpv_free(path);
     }
 
-    if (ud->cached_art_url)
-    {
+    if (ud->cached_art_url) {
         g_variant_dict_insert(dict, "mpris:artUrl", "s", ud->cached_art_url);
     }
 }
 
-static void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict)
+/**
+ * Add content creation date metadata to the variant dictionary
+ * @param mpv MPV handle
+ * @param dict Variant dictionary to add to
+ */
+void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict)
 {
     char *date_str = mpv_get_property_string(mpv, "metadata/by-key/Date");
 
@@ -277,10 +252,13 @@ static void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict)
     mpv_free(date_str);
 }
 
-static GVariant *create_metadata(UserData *ud)
+/**
+ * Create complete MPRIS metadata variant
+ * @param ud User data structure
+ * @return GVariant containing all metadata (caller must unref)
+ */
+GVariant *create_metadata(UserData *ud)
 {
-    g_mutex_lock(&metadata_mutex);
-
     GVariantDict dict;
     int64_t track;
     double duration;
@@ -345,10 +323,57 @@ static GVariant *create_metadata(UserData *ud)
     add_metadata_item_int(ud->mpv, &dict, "metadata/by-key/Disc", "xesam:discNumber");
 
     add_metadata_uri(ud->mpv, &dict);
-    add_metadata_art(ud->mpv, &dict, ud);
+    add_metadata_art(ud->mpv, &dict, ud); 
     add_metadata_content_created(ud->mpv, &dict);
 
-    GVariant *result = g_variant_dict_end(&dict);
-    g_mutex_unlock(&metadata_mutex);
-    return result;
+    return g_variant_dict_end(&dict);
+}
+
+gchar *try_get_local_art_enhanced(mpv_handle *mpv, const char *path) {
+    gchar *dirname = g_path_get_dirname(path);
+    gchar *out = NULL;
+    gboolean found = FALSE;
+    
+    // Calculate art_files_count locally instead of using the global variable
+    const int local_art_files_count = sizeof(&art_files) / sizeof(art_files[0]);
+    
+    // First, try the predefined art file names
+    for (int i = 0; i < local_art_files_count && !found; i++) {
+        // Skip wildcard patterns for now
+        if (strstr(art_files[i], "{*}") != NULL) {
+            continue;
+        }
+        
+        gchar *filename = g_build_filename(dirname, art_files[i], NULL);
+        
+        if (g_file_test(filename, G_FILE_TEST_EXISTS)) {
+            out = path_to_uri(mpv, filename);
+            found = TRUE;
+        }
+        
+        g_free(filename);
+    }
+    
+    // If no predefined art files found, scan directory for any image files
+    if (!found) {
+        GDir *dir = g_dir_open(dirname, 0, NULL);
+        if (dir) {
+            const gchar *filename;
+            while ((filename = g_dir_read_name(dir)) != NULL && !found) {
+                // Use is_art_file function here to make it used
+                if (is_art_file(filename)) {
+                    gchar *full_path = g_build_filename(dirname, filename, NULL);
+                    if (g_file_test(full_path, G_FILE_TEST_IS_REGULAR)) {
+                        out = path_to_uri(mpv, full_path);
+                        found = TRUE;
+                    }
+                    g_free(full_path);
+                }
+            }
+            g_dir_close(dir);
+        }
+    }
+    
+    g_free(dirname);
+    return out;
 }

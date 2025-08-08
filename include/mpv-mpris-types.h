@@ -11,11 +11,6 @@
 #include <libavformat/avformat.h>
 #include <inttypes.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <errno.h>
-#include <time.h>
-#include <unistd.h>
 
 // Cache configuration
 #define CACHE_MAX_AGE_DAYS 15

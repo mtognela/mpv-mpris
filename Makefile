@@ -41,7 +41,7 @@ UID ?= $(shell id -u)
 
 # Main target - build the shared library directly from .c files
 $(TARGET): $(SRCS) $(HEADERS)
-	$(CC) $(SRCS) $(HEADERS) -o $(TARGET) $(BASE_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(INCLUDE_FLAGS) $(BASE_LDFLAGS) $(LDFLAGS) -shared -fPIC
+	$(CC) $(SRCS) -o $(TARGET) $(BASE_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(INCLUDE_FLAGS) $(BASE_LDFLAGS) $(LDFLAGS) -shared -fPIC
 
 # Install logic based on user privileges
 ifneq ($(UID),0)

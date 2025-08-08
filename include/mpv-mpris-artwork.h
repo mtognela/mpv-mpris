@@ -1,89 +1,69 @@
 /*
-    MIT License - MPV MPRIS Bridge - Metadata Functions
+    MIT License - MPV MPRIS Bridge - Album Artwork Functions
 */
 
-#ifndef MPV_MPRIS_METADATA_H
-#define MPV_MPRIS_METADATA_H
+#ifndef MPV_MPRIS_ARTWORK_H
+#define MPV_MPRIS_ARTWORK_H
 
 #include "mpv-mpris-types.h"
 
-// Forward declarations from artwork module
-gchar *try_get_youtube_thumbnail(const char *path);
-gchar *try_get_embedded_art(char *path);
+// Forward declaration
+gchar *path_to_uri(mpv_handle *mpv, char *path);
+
+// Album art file patterns
+extern const char art_files[][32];
+
+// Supported image extensions
+extern const char *supported_extensions[];
+
+/**
+ * Check if a file has a supported image extension
+ * @param filename The filename to check
+ * @return TRUE if the file has a supported image extension
+ */
+gboolean is_supported_image_file(const char *filename);
+
+/**
+ * Check if a filename matches known album art patterns
+ * @param filename The filename to check
+ * @return TRUE if the filename matches album art patterns
+ */
+gboolean is_art_file(const char *filename);
+
+/**
+ * Detect image format from binary data and return appropriate extension
+ * @param data Binary image data
+ * @param size Size of the image data
+ * @return File extension string (e.g., ".jpg", ".png")
+ */
+const char *get_image_extension(const uint8_t *data, size_t size);
+
+/**
+ * Try to find local album art files in the same directory as the media file
+ * @param mpv MPV handle
+ * @param path Path to the media file
+ * @return URI to the album art file, or NULL if not found
+ */
 gchar *try_get_local_art(mpv_handle *mpv, char *path);
 
 /**
- * Convert a potentially non-UTF8 string to valid UTF8
- * @param maybe_utf8 Input string that may or may not be UTF8
- * @return Valid UTF8 string (must be freed with g_free)
+ * Get the cache directory for album art
+ * @return Path to cache directory, or NULL on error
  */
-gchar *string_to_utf8(gchar *maybe_utf8);
+gchar *get_cache_dir(void);
 
 /**
- * Convert a file path to a URI, handling both absolute and relative paths
- * @param mpv MPV handle for getting working directory
- * @param path File path to convert
- * @return URI string (must be freed with g_free), or NULL on error
+ * Generate cache filename for album art based on media path and image data
+ * @param path Media file path
+ * @param image_data Image binary data
+ * @param image_size Size of image data
+ * @return Generated filename for cache
  */
-gchar *path_to_uri(mpv_handle *mpv, char *path);
+gchar *generate_cache_filename(const char *path, const uint8_t *image_data, size_t image_size);
 
 /**
- * Add a string metadata item to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- * @param property MPV property name
- * @param tag MPRIS metadata tag name
+ * Clean up old cache files based on CACHE_MAX_AGE_DAYS
  */
-void add_metadata_item_string(mpv_handle *mpv, GVariantDict *dict,
-                             const char *property, const char *tag);
+void cleanup_old_cache_files(void);
 
-/**
- * Add an integer metadata item to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- * @param property MPV property name
- * @param tag MPRIS metadata tag name
- */
-void add_metadata_item_int(mpv_handle *mpv, GVariantDict *dict,
-                          const char *property, const char *tag);
-
-/**
- * Add a string list metadata item to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- * @param property MPV property name
- * @param tag MPRIS metadata tag name
- */
-void add_metadata_item_string_list(mpv_handle *mpv, GVariantDict *dict,
-                                  const char *property, const char *tag);
-
-/**
- * Add URI metadata to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- */
-void add_metadata_uri(mpv_handle *mpv, GVariantDict *dict);
-
-/**
- * Add album art metadata to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- * @param ud User data containing cached art information
- */
-void add_metadata_art(mpv_handle *mpv, GVariantDict *dict, UserData *ud);
-
-/**
- * Add content creation date metadata to the variant dictionary
- * @param mpv MPV handle
- * @param dict Variant dictionary to add to
- */
-void add_metadata_content_created(mpv_handle *mpv, GVariantDict *dict);
-
-/**
- * Create complete MPRIS metadata variant
- * @param ud User data structure
- * @return GVariant containing all metadata (caller must unref)
- */
-GVariant *create_metadata(UserData *ud);
-
-#endif // MPV_MPRIS_METADATA_H
+#endif // MPV_MPRIS_ARTWORK_H
