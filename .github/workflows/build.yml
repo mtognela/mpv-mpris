@@ -11,7 +11,7 @@ jobs:
       - name: Install Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: master  # or specify a version like "0.12.0"
+          version: "0.14.1"  # Change this to match your Arch version
           
       - name: Install dependencies
         run: |
