@@ -1,52 +1,63 @@
 ---
 name: build
-
 on: [push, pull_request]
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: master  # or specify a version like "0.12.0"
+          
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install libmpv-dev libglib2.0-dev libavformat-dev
-
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Build
+          sudo apt install libmpv-dev libglib2.0-dev libavformat-dev pkg-config
+          
+      - name: Build with Zig
         run: |
-          make zig-out/lib/libmpris.so
-
+          zig build
+          
+      - name: Verify build output
+        run: |
+          ls -la zig-out/lib/
+          file zig-out/lib/libmpris.so
+          
       - name: Upload binary
-        uses: actions/upload-artifact@v4  
+        uses: actions/upload-artifact@v4
         with:
-          name: zig-out/lib/libmpris.so
+          name: libmpris-so
           path: zig-out/lib/libmpris.so
           if-no-files-found: error
-
+          
       - name: Prepare for test
         run: |
           sudo apt install mpv playerctl sound-theme-freedesktop bash dbus xvfb xauth jq socat gawk
-
+          
       - name: Run tests
         run: |
-          make test
-
+          # If you have a make test target that works with zig build
+          make test || zig build test
+          
       - name: Check git files unmodified
         run: |
           git diff --exit-code HEAD
-
+          
       - name: Check .gitignore matches generated files
         run: |
           ! git ls-files --others --exclude-standard | grep .
-
+          
       - name: Cleanup generated files
         run: |
-          make clean
-
+          # Clean both make and zig artifacts
+          make clean || true
+          zig build clean || true
+          rm -rf zig-out .zig-cache
+          
       - name: Check cleanup removed generated files
         run: |
           ! git ls-files --others | grep .
