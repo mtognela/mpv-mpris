@@ -12,6 +12,7 @@ BASE_LDFLAGS = $(shell $(PKG_CONFIG) --libs gio-2.0 gio-unix-2.0 glib-2.0 mpv li
 
 # Directory structure
 SRC_DIR := src
+C_SRC_DIR := $(SRC_DIR)/c
 INCLUDE_DIR := include
 PREFIX := /usr/local
 PLUGINDIR := $(PREFIX)/lib/mpv-mpris
@@ -22,7 +23,7 @@ SYS_SCRIPTS_DIR := /etc/mpv/scripts
 TARGET := mpris.so
 
 # Source files (C files only)
-SRCS := $(wildcard $(SRC_DIR)/*.c)
+SRCS := $(wildcard $(C_SRC_DIR)/*.c)
 
 # Header files (for dependency tracking)
 HEADERS := $(wildcard $(INCLUDE_DIR)/*.h)
@@ -44,12 +45,15 @@ ZIG_TEST_TARGET := zig-out/bin/mpv-mpris-test
  test test-zig test-c \
  clean clean-zig clean-all \
  debug debug-zig \
- build-zig \
+ build-zig build-c \
  help
 
-# Main target - build the shared library directly from .c files (original)
-$(TARGET): $(SRCS) $(HEADERS)
-	$(CC) $(SRCS) -o $(TARGET) $(BASE_CFLAGS) $(CFLAGS) $(CPPFLAGS) $(INCLUDE_FLAGS) $(BASE_LDFLAGS) $(LDFLAGS) -shared -fPIC
+# Default target - build with Zig
+all: build-zig
+
+# C build target - build the shared library from .c files
+build-c $(TARGET): $(SRCS) $(HEADERS)
+	$(CC) $(BASE_CFLAGS) $(CFLAGS) $(INCLUDE_FLAGS) -fPIC -shared -o $(TARGET) $(SRCS) $(BASE_LDFLAGS) $(LDFLAGS)
 
 # Zig build targets
 build-zig:
@@ -136,14 +140,17 @@ print-vars:
 	@echo "INCLUDE_FLAGS: $(INCLUDE_FLAGS)"
 	@echo "ZIG: $(ZIG)"
 	@echo "ZIG_TARGET: $(ZIG_TARGET)"
+	@echo "C_SRC_DIR: $(C_SRC_DIR)"
 
 # Help target
 help:
 	@echo "Available targets:"
 	@echo ""
 	@echo "Building:"
-	@echo "  $(TARGET)          - Build mpris.so with GCC (default, original)"
+	@echo "  all             - Build with Zig compiler (default)"
 	@echo "  build-zig       - Build with Zig compiler"
+	@echo "  build-c         - Build mpris.so with GCC/CC"
+	@echo "  $(TARGET)          - Build mpris.so with GCC/CC (alias)"
 	@echo "  debug           - Build with GCC debug symbols"
 	@echo "  debug-zig       - Build with Zig debug symbols"
 	@echo ""
