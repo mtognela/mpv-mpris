@@ -6,14 +6,11 @@ pub fn build(b: *std.Build) void {
 
     // Get pkg-config output
     const allocator = b.allocator;
-    
+
     // Run pkg-config for cflags
     const cflags_result = std.process.Child.run(.{
         .allocator = allocator,
-        .argv = &[_][]const u8{
-            "pkg-config", "--cflags", 
-            "gio-2.0", "gio-unix-2.0", "glib-2.0", "mpv", "libavformat"
-        },
+        .argv = &[_][]const u8{ "pkg-config", "--cflags", "gio-2.0", "gio-unix-2.0", "glib-2.0", "mpv", "libavformat" },
     }) catch |err| {
         std.log.err("Failed to run pkg-config --cflags: {}\n", .{err});
         std.process.exit(1);
@@ -24,10 +21,7 @@ pub fn build(b: *std.Build) void {
     // Run pkg-config for libs
     const ldflags_result = std.process.Child.run(.{
         .allocator = allocator,
-        .argv = &[_][]const u8{
-            "pkg-config", "--libs",
-            "gio-2.0", "gio-unix-2.0", "glib-2.0", "mpv", "libavformat"
-        },
+        .argv = &[_][]const u8{ "pkg-config", "--libs", "gio-2.0", "gio-unix-2.0", "glib-2.0", "mpv", "libavformat" },
     }) catch |err| {
         std.log.err("Failed to run pkg-config --libs: {}\n", .{err});
         std.process.exit(1);
@@ -38,11 +32,9 @@ pub fn build(b: *std.Build) void {
     // Parse cflags
     var cflags_list = std.ArrayList([]const u8).init(allocator);
     defer cflags_list.deinit();
-    
+
     // Add base flags (equivalent to your BASE_CFLAGS)
-    cflags_list.appendSlice(&[_][]const u8{
-        "-std=c99", "-Wall", "-Wextra", "-O2", "-pedantic"
-    }) catch unreachable;
+    cflags_list.appendSlice(&[_][]const u8{ "-std=c99", "-Wall", "-Wextra", "-O2", "-pedantic" }) catch unreachable;
 
     // Add pkg-config cflags
     var cflags_iter = std.mem.tokenizeAny(u8, std.mem.trim(u8, cflags_result.stdout, " \n\r\t"), " \t");
@@ -53,7 +45,7 @@ pub fn build(b: *std.Build) void {
     // Parse library names from ldflags
     var libs_list = std.ArrayList([]const u8).init(allocator);
     defer libs_list.deinit();
-    
+
     var ldflags_iter = std.mem.tokenizeAny(u8, std.mem.trim(u8, ldflags_result.stdout, " \n\r\t"), " \t");
     while (ldflags_iter.next()) |flag| {
         if (std.mem.startsWith(u8, flag, "-l")) {
@@ -71,12 +63,12 @@ pub fn build(b: *std.Build) void {
     // Add C source files with combined flags
     lib.addCSourceFiles(.{
         .files = &[_][]const u8{
-            "src/mpv-mpris-artwork.c",
-            "src/mpv-mpris-dbus.c",
-            "src/mpv-mpris-events.c",
-            "src/mpv-mpris-glob.c",
-            "src/mpv-mpris-metadata.c",
-            "src/mpv_mpris_open_cplugin.c",
+            "src/c/mpv-mpris-artwork.c",
+            "src/c/mpv-mpris-dbus.c",
+            "src/c/mpv-mpris-events.c",
+            "src/c/mpv-mpris-glob.c",
+            "src/c/mpv-mpris-metadata.c",
+            "src/c/mpv_mpris_open_cplugin.c",
         },
         .flags = cflags_list.items,
     });
@@ -98,15 +90,15 @@ pub fn build(b: *std.Build) void {
         .name = "mpv-mpris-test",
         .root_source_file = b.path("test/zig/test-main.zig"),
         .target = target,
-        .optimize = optimize,   
+        .optimize = optimize,
     });
 
     // Add include paths for the test executable
     test_exe.addIncludePath(b.path("include"));
-    
+
     // Link the shared library we just built
     test_exe.linkLibrary(lib);
-    
+
     // Link system libraries for the test
     for (libs_list.items) |lib_name| {
         test_exe.linkSystemLibrary(lib_name);
@@ -133,10 +125,8 @@ pub fn build(b: *std.Build) void {
     // Debug flags (equivalent to your debug target)
     var debug_cflags = std.ArrayList([]const u8).init(allocator);
     defer debug_cflags.deinit();
-    debug_cflags.appendSlice(&[_][]const u8{
-        "-std=c99", "-Wall", "-Wextra", "-O0", "-g", "-DDEBUG", "-pedantic"
-    }) catch unreachable;
-    
+    debug_cflags.appendSlice(&[_][]const u8{ "-std=c99", "-Wall", "-Wextra", "-O0", "-g", "-DDEBUG", "-pedantic" }) catch unreachable;
+
     // Add pkg-config flags to debug build too
     var debug_cflags_iter = std.mem.tokenizeAny(u8, std.mem.trim(u8, cflags_result.stdout, " \n\r\t"), " \t");
     while (debug_cflags_iter.next()) |flag| {
@@ -170,7 +160,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    
+
     unit_tests.addIncludePath(b.path("include"));
     for (libs_list.items) |lib_name| {
         unit_tests.linkSystemLibrary(lib_name);
@@ -183,15 +173,11 @@ pub fn build(b: *std.Build) void {
 
     // Print variables step for debugging
     const print_step = b.step("print-vars", "Print build variables");
-    const print_run = b.addSystemCommand(&[_][]const u8{
-        "echo", "Zig build configuration loaded successfully"
-    });
+    const print_run = b.addSystemCommand(&[_][]const u8{ "echo", "Zig build configuration loaded successfully" });
     print_step.dependOn(&print_run.step);
 
     // Clean step
     const clean_step = b.step("clean", "Clean build artifacts");
-    const clean_run = b.addSystemCommand(&[_][]const u8{
-        "rm", "-rf", "zig-out", "zig-cache", ".zig-cache"
-    });
+    const clean_run = b.addSystemCommand(&[_][]const u8{ "rm", "-rf", "zig-out", "zig-cache", ".zig-cache" });
     clean_step.dependOn(&clean_run.step);
-}   
+}
