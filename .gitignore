@@ -11,6 +11,5 @@ mpris.so
 *.stderr.log
 .vscode/
 _temp*/
-debug*
 .zig-cache/
 zig-out/
