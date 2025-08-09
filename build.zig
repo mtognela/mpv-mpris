@@ -96,9 +96,9 @@ pub fn build(b: *std.Build) void {
     // Build the test executable
     const test_exe = b.addExecutable(.{
         .name = "mpv-mpris-test",
-        .root_source_file = b.path("test/zig/main.zig"),
+        .root_source_file = b.path("test/zig/test-main.zig"),
         .target = target,
-        .optimize = optimize,
+        .optimize = optimize,   
     });
 
     // Add include paths for the test executable
@@ -166,7 +166,7 @@ pub fn build(b: *std.Build) void {
 
     // Create unit tests for Zig code
     const unit_tests = b.addTest(.{
-        .root_source_file = b.path("test/zig/main.zig"),
+        .root_source_file = b.path("test/zig/test-main.zig"),
         .target = target,
         .optimize = optimize,
     });
