@@ -194,6 +194,23 @@ pub fn build(b: *std.Build) void {
     const debug_step = b.step("debug", "Build with debug symbols");
     debug_step.dependOn(&b.addInstallArtifact(debug_lib, .{}).step);
 
+    // FIXED: Create a static library for linking with tests instead of trying to link the shared library
+    const test_lib = b.addStaticLibrary(.{
+        .name = "mpris-test",
+        .target = target,
+        .optimize = optimize,
+    });
+    
+    // Add C source files to static library
+    test_lib.addCSourceFiles(.{
+        .files = &CSourceFiles,
+        .flags = release_cflags,
+    });
+    
+    test_lib.addIncludePath(b.path("include"));
+    test_lib.addIncludePath(b.path("src/zig"));
+    addSystemLibraries(test_lib, pkg_info.libs);
+
     // Test executable
     const test_exe = b.addExecutable(.{
         .name = "mpv-mpris-test",
@@ -204,7 +221,7 @@ pub fn build(b: *std.Build) void {
 
     test_exe.addIncludePath(b.path("include"));
     test_exe.addIncludePath(b.path("src/zig"));
-    test_exe.linkLibrary(lib);
+    test_exe.linkLibrary(test_lib); // Link the static library instead
     addSystemLibraries(test_exe, pkg_info.libs);
     b.installArtifact(test_exe);
 
@@ -215,11 +232,17 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the test application");
     run_step.dependOn(&run_test_cmd.step);
 
-    // Unit tests
+    // FIXED: Unit tests - properly link C source files
     const unit_tests = b.addTest(.{
         .root_source_file = b.path("test/zig/test-main.zig"),
         .target = target,
         .optimize = optimize,
+    });
+
+    // Add C source files directly to the test
+    unit_tests.addCSourceFiles(.{
+        .files = &CSourceFiles,
+        .flags = release_cflags,
     });
 
     unit_tests.addIncludePath(b.path("include"));
