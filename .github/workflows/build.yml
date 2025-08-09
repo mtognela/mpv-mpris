@@ -18,13 +18,13 @@ jobs:
 
       - name: Build
         run: |
-          make
+          make zig-out/lib/libmpris.so
 
       - name: Upload binary
         uses: actions/upload-artifact@v4  
         with:
-          name: mpris.so
-          path: mpris.so
+          name: zig-out/lib/libmpris.so
+          path: zig-out/lib/libmpris.so
           if-no-files-found: error
 
       - name: Prepare for test
