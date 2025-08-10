@@ -5,6 +5,7 @@ MKDIR := mkdir
 RMDIR := rmdir
 LN := ln
 RM := rm
+CC = zig cc
 
 # Base flags, environment CFLAGS / LDFLAGS can be appended.
 BASE_CFLAGS = -std=c99 -Wall -Wextra -O2 -pedantic $(shell $(PKG_CONFIG) --cflags gio-2.0 gio-unix-2.0 glib-2.0 mpv libavformat)
@@ -20,7 +21,7 @@ SCRIPTS_DIR := $(HOME)/.config/mpv/scripts
 SYS_SCRIPTS_DIR := /etc/mpv/scripts
 
 # Target and source files
-TARGET := mpris.so
+TARGET := c-out/mpris.so
 
 # Source files (C files only)
 SRCS := $(wildcard $(C_SRC_DIR)/*.c)
