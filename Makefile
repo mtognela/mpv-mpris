@@ -49,13 +49,13 @@ ZIG_TEST_TARGET := build/zig-out/bin/mpv-mpris-test
  build-zig build-c \
  setup help
 
-setup: 
-	$(MKDIR) build/zig-out/bin
-	$(MKDIR) built/zig-out/lib
-	$(MKDIR) built/c-out/lib
-
-# Default target - build with Zig
 all: build-zig
+
+setup:
+	$(MKDIR) build/zig-out/bin
+	$(MKDIR) build/zig-out/lib
+	$(MKDIR) build/c-out/lib
+
 
 # C build target - build the shared library from .c files
 build-c $(TARGET): $(SRCS) $(HEADERS)
