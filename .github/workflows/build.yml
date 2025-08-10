@@ -21,38 +21,10 @@ jobs:
         run: |
           make build-zig
           echo "Zig build completed"
-      # - name: Verify zig build output
-      #   run: |
-      #     echo "Checking Zig build directory..."
-      #     ls -la build/zig-out/lib/ || echo "Zig lib directory not found"
-      #     if [ -f "build/zig-out/lib/libmpris.so" ]; then
-      #       echo "Zig binary found:"
-      #       file build/zig-out/lib/libmpris.so
-      #       ls -la build/zig-out/lib/libmpris.so
-      #     else
-      #       echo "ERROR: Zig binary not found at expected path"
-      #       echo "Contents of build directory:"
-      #       find build/ -name "*.so" -type f 2>/dev/null || echo "No .so files found in build/"
-      #       exit 1
-      #     fi
       - name: Build c
         run: |
           make build-c
           echo "C build completed"
-      # - name: Verify c build output
-      #   run: |
-      #     echo "Checking C build directory..."
-      #     ls -la build/c-out/lib/ || echo "C lib directory not found"
-      #     if [ -f "build/c-out/lib/libmpris.so" ]; then
-      #       echo "C binary found:"
-      #       file build/c-out/lib/libmpris.so
-      #       ls -la build/c-out/lib/libmpris.so
-      #     else
-      #       echo "ERROR: C binary not found at expected path"
-      #       echo "Contents of build directory:"
-      #       find build/ -name "*.so" -type f 2>/dev/null || echo "No .so files found in build/"
-      #       exit 1
-      #     fi
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
