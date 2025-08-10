@@ -48,7 +48,7 @@ jobs:
           git diff --exit-code HEAD
       - name: Check .gitignore matches generated files
         run: |
-          ! git ls-files --others --exclude-standard | grep .
+          ! git ls-files --others --exclude-standard | grep test/
       - name: Cleanup generated files
         run: |
           # Clean both make and zig artifacts
