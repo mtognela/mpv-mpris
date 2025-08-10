@@ -13,3 +13,5 @@ mpris.so
 _temp*/
 .zig-cache/
 zig-out/
+c-out/
+build/
