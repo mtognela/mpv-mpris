@@ -22,14 +22,14 @@ jobs:
           make build-zig
       - name: Verify zig build output
         run: |
-          ls -la build/zig-out/lib/
+          ls -la build/zig-out/lib/libmpris.so
           file build/zig-out/lib/libmpris.so
       - name: Build c
         run: |
           make build-c
       - name: Verify c build output
         run: |
-          ls -la build/c-out/lib/
+          ls -la build/c-out/lib/libmpris.so
           file build/c-out/lib/libmpris.so
       - name: Upload binary
         uses: actions/upload-artifact@v4
