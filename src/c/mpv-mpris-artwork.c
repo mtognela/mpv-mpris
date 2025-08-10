@@ -138,10 +138,10 @@ const char* get_image_extension(const uint8_t *data, size_t size) {
     }
 
     // BMP - BM signature
-    if (size >= 2 && data[0] == 0x42 && data[1] == 0x4D) {
+    if (size >= 14 && data[0] == 0x42 && data[1] == 0x4D) {
         return ".bmp";
     }
-
+    
     // TIFF (Little Endian) - 49 49 2A 00
     if (size >= 4 && memcmp(data, "II\x2A\x00", 4) == 0) {
         return ".tiff";
