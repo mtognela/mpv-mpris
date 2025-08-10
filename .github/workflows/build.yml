@@ -7,31 +7,41 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
-      - name: Install Zig
-        uses: goto-bus-stop/setup-zig@v2
-        with:
-          version: "0.14.1"  # Change this to match your Arch version
           
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install libmpv-dev libglib2.0-dev libavformat-dev pkg-config
-          
-      - name: Build with Zig
+
+      - name: Install Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: "0.14.1"            
+
+      - name: Build Zig
         run: |
-          zig build
-          
-      - name: Verify build output
+          make build-zig
+
+      - name: Verify zig build output
         run: |
-          ls -la zig-out/lib/
-          file zig-out/lib/libmpris.so
+          ls -la build/zig-out/lib/
+          file build/zig-out/lib/libmpris.so
+        
+      - name: Build c 
+        run: |
+          make build-c 
+      
+      - name: Verify c build output
+        run: |
+          ls -la build/c-out/lib/
+          file build/c-out/lib/libmpris.so    
+      
           
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: libmpris-so
-          path: zig-out/lib/libmpris.so
+          path: build/zig-out/lib/libmpris.so
           if-no-files-found: error
           
       - name: Prepare for test
@@ -40,9 +50,8 @@ jobs:
           
       - name: Run tests
         run: |
-          # If you have a make test target that works with zig build
-          make test || zig build test
-          
+          make test-c
+                  
       - name: Check git files unmodified
         run: |
           git diff --exit-code HEAD

@@ -21,7 +21,7 @@ SCRIPTS_DIR := $(HOME)/.config/mpv/scripts
 SYS_SCRIPTS_DIR := /etc/mpv/scripts
 
 # Target and source files
-TARGET := build/c-out/mpris.so
+TARGET := build/c-out/lib/libmpris.so
 
 # Source files (C files only)
 SRCS := $(wildcard $(C_SRC_DIR)/*.c)
@@ -129,7 +129,7 @@ clean:
 
 clean-zig:
 	$(ZIG) build clean
-	$(RM) -rf zig-out zig-cache
+	$(RM) -rf build/zig-out .zig-cache/
 
 clean-all: clean clean-zig
 
