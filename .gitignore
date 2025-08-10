@@ -9,6 +9,10 @@ mpris.so
 *.socat.log
 *.exit-code.log
 *.stderr.log
+test/*.log
+test/*.exit-code.log
+test/*.stderr.log
+test/*.stdout.log
 .vscode/
 _temp*/
 .zig-cache/
