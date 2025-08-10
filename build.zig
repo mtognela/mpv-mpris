@@ -121,11 +121,11 @@ fn buildCFlags(allocator: std.mem.Allocator, base_flags: []const []const u8, pkg
     return flags.toOwnedSlice();
 }
 
-fn addSystemLibraries(lib: *std.Build.Step.Compile, libs: []const []const u8) void {
+fn addSystemLibraries(target: *std.Build.Step.Compile, libs: []const []const u8) void {
     for (libs) |lib_name| {
-        lib.linkSystemLibrary(lib_name);
+        target.linkSystemLibrary(lib_name);
     }
-    lib.linkLibC();
+    target.linkLibC();
 }
 
 fn createSharedLibrary(
@@ -152,7 +152,7 @@ fn createSharedLibrary(
 
     lib.addIncludePath(b.path("include"));
     if (zig_root_file != null) {
-        lib.addIncludePath(b.path("src/zig")); // Add zig source directory to include path
+        lib.addIncludePath(b.path("src/zig"));
     }
     addSystemLibraries(lib, libs);
 
@@ -160,6 +160,8 @@ fn createSharedLibrary(
 }
 
 pub fn build(b: *std.Build) void {
+    b.install_prefix = "build/zig-out";
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
     const allocator = b.allocator;
@@ -194,24 +196,10 @@ pub fn build(b: *std.Build) void {
     const debug_step = b.step("debug", "Build with debug symbols");
     debug_step.dependOn(&b.addInstallArtifact(debug_lib, .{}).step);
 
-    // FIXED: Create a static library for linking with tests instead of trying to link the shared library
-    const test_lib = b.addStaticLibrary(.{
-        .name = "mpris-test",
-        .target = target,
-        .optimize = optimize,
-    });
-    
-    // Add C source files to static library
-    test_lib.addCSourceFiles(.{
-        .files = &CSourceFiles,
-        .flags = release_cflags,
-    });
-    
-    test_lib.addIncludePath(b.path("include"));
-    test_lib.addIncludePath(b.path("src/zig"));
-    addSystemLibraries(test_lib, pkg_info.libs);
+    // FIXED: Remove static library approach that was causing linking issues
+    // Instead, create test executable that directly includes C source files
 
-    // Test executable
+    // Test executable - directly include C sources to avoid linking issues
     const test_exe = b.addExecutable(.{
         .name = "mpv-mpris-test",
         .root_source_file = b.path("test/zig/test-main.zig"),
@@ -219,9 +207,14 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // Add C source files directly to the executable
+    test_exe.addCSourceFiles(.{
+        .files = &CSourceFiles,
+        .flags = release_cflags,
+    });
+
     test_exe.addIncludePath(b.path("include"));
     test_exe.addIncludePath(b.path("src/zig"));
-    test_exe.linkLibrary(test_lib); // Link the static library instead
     addSystemLibraries(test_exe, pkg_info.libs);
     b.installArtifact(test_exe);
 
@@ -232,7 +225,7 @@ pub fn build(b: *std.Build) void {
     const run_step = b.step("run", "Run the test application");
     run_step.dependOn(&run_test_cmd.step);
 
-    // FIXED: Unit tests - properly link C source files
+    // FIXED: Unit tests - use the same direct approach
     const unit_tests = b.addTest(.{
         .root_source_file = b.path("test/zig/test-main.zig"),
         .target = target,
@@ -258,7 +251,8 @@ pub fn build(b: *std.Build) void {
     const print_run = b.addSystemCommand(&[_][]const u8{ "echo", "Zig build configuration loaded successfully" });
     print_step.dependOn(&print_run.step);
 
+    // FIXED: Update clean step to clean the new build directory
     const clean_step = b.step("clean", "Clean build artifacts");
-    const clean_run = b.addSystemCommand(&[_][]const u8{ "rm", "-rf", "zig-out", "zig-cache", ".zig-cache" });
+    const clean_run = b.addSystemCommand(&[_][]const u8{ "rm", "-rf", "build/zig-out", "build/zig-cache", ".zig-cache" });
     clean_step.dependOn(&clean_run.step);
 }
