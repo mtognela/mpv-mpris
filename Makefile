@@ -63,7 +63,7 @@ build-c $(TARGET): $(SRCS) $(HEADERS)
 
 # Zig build targets
 build-zig:
-	$(ZIG) build
+	$(ZIG) build --prefix build/zig-out
 
 $(ZIG_TARGET): build-zig
 

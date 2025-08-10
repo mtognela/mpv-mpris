@@ -160,7 +160,7 @@ fn createSharedLibrary(
 }
 
 pub fn build(b: *std.Build) void {
-    b.install_prefix = "build/zig-out";
+    b.install_prefix = "build/zig-out/lib/";
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
