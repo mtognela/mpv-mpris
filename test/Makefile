@@ -21,11 +21,20 @@ $(tests):
 
 clean:
 	rm -f \
-	  *.mpv.ipc* \
+	  $(SHELL_DIR)*.mpv.ipc* \
 	  *.mpv.log \
 	  *.xvfb.log \
 	  *.Xauthority \
 	  *.socat.log \
 	  *.exit-code.log \
 	  *.stderr.log
+
+	rm -f \
+	  $(SHELL_DIR)/*.mpv.ipc* \
+	  $(SHELL_DIR)/*.mpv.log \
+	  $(SHELL_DIR)/*.xvfb.log \
+	  $(SHELL_DIR)/*.Xauthority \
+	  $(SHELL_DIR)/*.socat.log \
+	  $(SHELL_DIR)/*.exit-code.log \
+	  $(SHELL_DIR)/*.stderr.log  
 	rm -rf $(SHELL_DIR)/dbus
