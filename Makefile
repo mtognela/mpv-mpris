@@ -71,7 +71,7 @@ debug-zig:
 	$(ZIG) build debug
 
 test-zig: build-zig
-	$(ZIG) build test
+	$(ZIG) build test --prefix build/zig-out
 
 test-c: $(TARGET)
 	$(MAKE) -C test
@@ -128,15 +128,15 @@ debug: BASE_CFLAGS := $(BASE_CFLAGS:-O2=-O0 -g -DDEBUG)
 debug: $(TARGET)
 
 # Clean targets
-clean:
+clean-c:
 	$(RM) -f $(TARGET)
 	$(MAKE) -C test clean
 
 clean-zig:
 	$(ZIG) build clean
-	$(RM) -rf build/zig-out .zig-cache/
+	$(RM) -rf build/ .zig-cache/
 
-clean-all: clean clean-zig
+clean-all: clean-c clean-zig
 
 # Print variables for debugging the Makefile
 print-vars:
@@ -155,8 +155,8 @@ help:
 	@echo "Building:"
 	@echo "  all             - Build with Zig compiler (default)"
 	@echo "  build-zig       - Build with Zig compiler"
-	@echo "  build-c         - Build mpris.so with GCC/CC"
-	@echo "  $(TARGET)          - Build mpris.so with GCC/CC (alias)"
+	@echo "  build-c         - Build mpris.so with zig cc"
+	@echo "  $(TARGET)          - Build mpris.so with zig cc (alias)"
 	@echo "  debug           - Build with GCC debug symbols"
 	@echo "  debug-zig       - Build with Zig debug symbols"
 	@echo ""

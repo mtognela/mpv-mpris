@@ -42,7 +42,7 @@ jobs:
           sudo apt install mpv playerctl sound-theme-freedesktop bash dbus xvfb xauth jq socat gawk
       - name: Run tests
         run: |
-          make test-c
+          make test
       - name: Check git files unmodified
         run: |
           git diff --exit-code HEAD
