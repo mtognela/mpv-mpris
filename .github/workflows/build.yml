@@ -20,11 +20,17 @@ jobs:
       - name: Build Zig
         run: |
           make build-zig
-          echo "Zig build completed"
+      - name: Verify zig build output
+        run: |
+          ls -la build/zig-out/lib/
+          file build/zig-out/lib/libmpris.so
       - name: Build c
         run: |
           make build-c
-          echo "C build completed"
+      - name: Verify c build output
+        run: |
+          ls -la build/c-out/lib/
+          file build/c-out/lib/libmpris.so
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
