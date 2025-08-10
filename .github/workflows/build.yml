@@ -7,68 +7,54 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-          
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install libmpv-dev libglib2.0-dev libavformat-dev pkg-config
-
       - name: Install Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: "0.14.1"  
-      
-      -name: Setup dirs
+          version: "0.14.1"
+      - name: Setup dirs
         run: make setup
-
       - name: Build Zig
         run: |
           make build-zig
-
       - name: Verify zig build output
         run: |
           ls -la build/zig-out/lib/
           file build/zig-out/lib/libmpris.so
-        
-      - name: Build c 
+      - name: Build c
         run: |
-          make build-c 
-      
+          make build-c
       - name: Verify c build output
         run: |
           ls -la build/c-out/lib/
-          file build/c-out/lib/libmpris.so    
-          
+          file build/c-out/lib/libmpris.so
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: libmpris-so
           path: build/zig-out/lib/libmpris.so
           if-no-files-found: error
-          
       - name: Prepare for test
         run: |
           sudo apt install mpv playerctl sound-theme-freedesktop bash dbus xvfb xauth jq socat gawk
-          
       - name: Run tests
         run: |
           make test-c
-                  
       - name: Check git files unmodified
         run: |
           git diff --exit-code HEAD
-          
       - name: Check .gitignore matches generated files
         run: |
           ! git ls-files --others --exclude-standard | grep .
-          
       - name: Cleanup generated files
         run: |
           # Clean both make and zig artifacts
           make clean || true
           zig build clean || true
           rm -rf zig-out .zig-cache
-          
       - name: Check cleanup removed generated files
         run: |
           ! git ls-files --others | grep .
