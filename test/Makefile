@@ -1,5 +1,5 @@
 MAKEFLAGS += --output-sync=target
-SHELL_DIR := shell
+SHELL_DIR := test
 
 tests = \
 	$(SHELL_DIR)/metadata \
@@ -21,11 +21,11 @@ $(tests):
 
 clean:
 	rm -f \
-	  $(SHELL_DIR)/*.mpv.ipc* \
-	  $(SHELL_DIR)/*.mpv.log \
-	  $(SHELL_DIR)/*.xvfb.log \
-	  $(SHELL_DIR)/*.Xauthority \
-	  $(SHELL_DIR)/*.socat.log \
-	  $(SHELL_DIR)/*.exit-code.log \
-	  $(SHELL_DIR)/*.stderr.log
+	  *.mpv.ipc* \
+	  *.mpv.log \
+	  *.xvfb.log \
+	  *.Xauthority \
+	  *.socat.log \
+	  *.exit-code.log \
+	  *.stderr.log
 	rm -rf $(SHELL_DIR)/dbus

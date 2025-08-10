@@ -54,7 +54,7 @@ jobs:
           # Clean both make and zig artifacts
           make clean || true
           zig build clean || true
-          rm -rf zig-out .zig-cache
+          make clean-all
       - name: Check cleanup removed generated files
         run: |
           ! git ls-files --others | grep .
