@@ -21,7 +21,7 @@ SCRIPTS_DIR := $(HOME)/.config/mpv/scripts
 SYS_SCRIPTS_DIR := /etc/mpv/scripts
 
 # Target and source files
-TARGET := c-out/mpris.so
+TARGET := build/c-out/mpris.so
 
 # Source files (C files only)
 SRCS := $(wildcard $(C_SRC_DIR)/*.c)
@@ -37,8 +37,8 @@ UID ?= $(shell id -u)
 
 # Zig-specific variables
 ZIG := zig
-ZIG_TARGET := zig-out/lib/libmpris.so
-ZIG_TEST_TARGET := zig-out/bin/mpv-mpris-test
+ZIG_TARGET := build/zig-out/lib/libmpris.so
+ZIG_TEST_TARGET := build/zig-out/bin/mpv-mpris-test
 
 .PHONY: \
  install install-user install-system \
