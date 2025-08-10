@@ -386,7 +386,7 @@ gchar *try_get_embedded_art(char *path)
     return uri;
 }
 
-gchar *get_cache_dir()
+gchar *get_cache_dir(void)
 {
     gchar *cache_dir = g_build_filename(g_get_user_cache_dir(), "mpv-mpris", "coverart", NULL);
 
@@ -408,7 +408,7 @@ gchar* generate_cache_filename(const char *path, const uint8_t *image_data, size
     return filename;
 }
 
-void cleanup_old_cache_files()
+void cleanup_old_cache_files(void)
 {
     gchar *cache_dir = get_cache_dir();
 

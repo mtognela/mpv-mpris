@@ -58,6 +58,10 @@ gboolean is_art_file(const char *filename);
 
 gchar *try_get_embedded_art(char *path);
 
+void cleanup_old_cache_files(void);
+
+void cleanup_old_cache_files(void);
+
 gchar *try_get_youtube_thumbnail(const char *url);
 gchar *try_get_local_art_enhanced(mpv_handle *mpv, const char *path);
 
