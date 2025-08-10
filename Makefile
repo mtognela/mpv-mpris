@@ -1,7 +1,7 @@
 # Include the original Makefile
 PKG_CONFIG = pkg-config
 INSTALL := install
-MKDIR := mkdir
+MKDIR := mkdir -p
 RMDIR := rmdir
 LN := ln
 RM := rm
@@ -47,7 +47,12 @@ ZIG_TEST_TARGET := build/zig-out/bin/mpv-mpris-test
  clean clean-zig clean-all \
  debug debug-zig \
  build-zig build-c \
- help
+ setup help
+
+setup: 
+	$(MKDIR) build/zig-out/bin
+	$(MKDIR) built/zig-out/lib
+	$(MKDIR) built/c-out/lib
 
 # Default target - build with Zig
 all: build-zig

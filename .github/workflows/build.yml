@@ -16,7 +16,10 @@ jobs:
       - name: Install Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: "0.14.1"            
+          version: "0.14.1"  
+      
+      -name: Setup dirs
+        run: make setup
 
       - name: Build Zig
         run: |
@@ -35,7 +38,6 @@ jobs:
         run: |
           ls -la build/c-out/lib/
           file build/c-out/lib/libmpris.so    
-      
           
       - name: Upload binary
         uses: actions/upload-artifact@v4
