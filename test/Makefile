@@ -1,5 +1,5 @@
 MAKEFLAGS += --output-sync=target
-SHELL_DIR := test
+SHELL_DIR := shell
 
 tests = \
 	$(SHELL_DIR)/metadata \
