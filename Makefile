@@ -21,7 +21,7 @@ SCRIPTS_DIR := $(HOME)/.config/mpv/scripts
 SYS_SCRIPTS_DIR := /etc/mpv/scripts
 
 # Target and source files
-TARGET := build/c-out/lib/libmpris.so
+TARGET := c-out/lib/libmpris.so
 
 # Source files (C files only)
 SRCS := $(wildcard $(C_SRC_DIR)/*.c)
@@ -49,13 +49,14 @@ ZIG_TEST_TARGET := build/zig-out/bin/mpv-mpris-test
  build-zig build-c \
  setup help
 
-all: build-zig
+all: build-zig build-c
+
+build: build-zig build-c 
 
 setup:
-	$(MKDIR) build/zig-out/bin
-	$(MKDIR) build/zig-out/lib
-	$(MKDIR) build/c-out/lib
-
+	$(MKDIR) zig-out/bin
+	$(MKDIR) zig-out/lib
+	$(MKDIR) c-out/lib
 
 # C build target - build the shared library from .c files
 build-c $(TARGET): $(SRCS) $(HEADERS)
@@ -63,7 +64,7 @@ build-c $(TARGET): $(SRCS) $(HEADERS)
 
 # Zig build targets
 build-zig:
-	$(ZIG) build --prefix build/zig-out
+	$(ZIG) build
 
 $(ZIG_TARGET): build-zig
 
@@ -71,7 +72,7 @@ debug-zig:
 	$(ZIG) build debug
 
 test-zig: build-zig
-	$(ZIG) build test --prefix build/zig-out
+	$(ZIG) build test
 
 test-c: $(TARGET)
 	$(MAKE) -C test
@@ -134,7 +135,7 @@ clean-c:
 
 clean-zig:
 	$(ZIG) build clean
-	$(RM) -rf build/ .zig-cache/
+	$(RM) -rf zig-out/ .zig-cache/
 
 clean-all: clean-c clean-zig
 

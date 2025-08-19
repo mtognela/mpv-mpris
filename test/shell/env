@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env sh
 
 set -e
 
@@ -12,7 +12,7 @@ test="$(basename "$1")"
 
 
 if [ -z "${MPV_MPRIS_TEST_PLUGIN+set}" ] ; then
-    for plugin_path in "../../build/zig-out/lib/libmpris.so" "../../build/c-out/lib/libmpris.so"; do
+    for plugin_path in "../../zig-out/lib/libmpris.so" "../../c-out/lib/libmpris.so"; do
         if [ -f "$plugin_path" ] && [ -r "$plugin_path" ] && [ -x "$plugin_path" ]; then
             export MPV_MPRIS_TEST_PLUGIN="$plugin_path"
             break
