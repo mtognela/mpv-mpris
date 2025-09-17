@@ -139,6 +139,8 @@ clean-zig:
 
 clean-all: clean-c clean-zig
 
+clean: clean-c clean-zig
+
 # Print variables for debugging the Makefile
 print-vars:
 	@echo "SRCS: $(SRCS)"
