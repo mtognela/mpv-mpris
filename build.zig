@@ -9,7 +9,7 @@ const PkgConfigResult = struct {
             allocator.free(flag);
         }
         allocator.free(self.cflags);
-        
+
         for (self.libs) |lib| {
             allocator.free(lib);
         }
@@ -35,7 +35,7 @@ const PkgConfigPackages = [_][]const u8{ "gio-2.0", "gio-unix-2.0", "glib-2.0", 
 fn runPkgConfig(allocator: std.mem.Allocator, packages: []const []const u8, flag_type: []const u8) ![]u8 {
     var argv = std.ArrayList([]const u8).init(allocator);
     defer argv.deinit();
-    
+
     try argv.append("pkg-config");
     try argv.append(flag_type);
     try argv.appendSlice(packages);
@@ -47,7 +47,7 @@ fn runPkgConfig(allocator: std.mem.Allocator, packages: []const []const u8, flag
         std.log.err("Failed to run pkg-config {s}: {}\n", .{ flag_type, err });
         return err;
     };
-    
+
     defer allocator.free(result.stderr);
     if (result.term != .Exited or result.term.Exited != 0) {
         std.log.err("pkg-config {s} failed with exit code: {}\n", .{ flag_type, result.term });
@@ -70,7 +70,7 @@ fn parsePkgConfigOutput(allocator: std.mem.Allocator, output: []const u8, compti
 
     const trimmed = std.mem.trim(u8, output, " \n\r\t");
     var iter = std.mem.tokenizeAny(u8, trimmed, " \t");
-    
+
     while (iter.next()) |token| {
         if (is_libs) {
             if (std.mem.startsWith(u8, token, "-l")) {
@@ -88,7 +88,7 @@ fn getPkgConfigInfo(allocator: std.mem.Allocator) !PkgConfigResult {
     // Get cflags
     const cflags_output = try runPkgConfig(allocator, &PkgConfigPackages, "--cflags");
     defer allocator.free(cflags_output);
-    
+
     const cflags = try parsePkgConfigOutput(allocator, cflags_output, false);
     errdefer {
         for (cflags) |flag| allocator.free(flag);
@@ -98,7 +98,7 @@ fn getPkgConfigInfo(allocator: std.mem.Allocator) !PkgConfigResult {
     // Get libs
     const libs_output = try runPkgConfig(allocator, &PkgConfigPackages, "--libs");
     defer allocator.free(libs_output);
-    
+
     const libs = try parsePkgConfigOutput(allocator, libs_output, true);
     errdefer {
         for (libs) |lib| allocator.free(lib);
@@ -180,7 +180,7 @@ pub fn build(b: *std.Build) void {
     };
     defer allocator.free(release_cflags);
 
-    // Build debug flags  
+    // Build debug flags
     const debug_cflags = buildCFlags(allocator, &DebugFlags, pkg_info.cflags) catch |err| {
         std.log.err("Failed to build debug cflags: {}\n", .{err});
         std.process.exit(1);
@@ -202,7 +202,7 @@ pub fn build(b: *std.Build) void {
     // Test executable - directly include C sources to avoid linking issues
     const test_exe = b.addExecutable(.{
         .name = "mpv-mpris-test",
-        .root_source_file = b.path("test/zig/test-main.zig"),
+        .root_source_file = b.path("test/zig/main.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -227,7 +227,7 @@ pub fn build(b: *std.Build) void {
 
     // FIXED: Unit tests - use the same direct approach
     const unit_tests = b.addTest(.{
-        .root_source_file = b.path("test/zig/test-main.zig"),
+        .root_source_file = b.path("test/zig/main.zig"),
         .target = target,
         .optimize = optimize,
     });
