@@ -26,11 +26,9 @@ mpv --script=/path/to/mpris.so video.mp4
 ```
 
 ## Install
-
 ```
-make build && make install
+make build
 ```
-
 A self-built `mpris.so` file can be installed with `make install` and will
 be installed to the appropriate mpv scripts directory for your current user
 or to the mpv system wide scripts directory for all users when you install as root.
