@@ -26,12 +26,10 @@ mpv --script=/path/to/mpris.so video.mp4
 ```
 
 ## Install
-###  `WIP TO UPDATE SECTION INSTALL`
 
-Packages are available for many [distributions](https://repology.org/project/mpv-mpris/versions).
-
-For 64-bit x86 Linux a pre-built version is [available here](https://github.com/hoyon/mpv-mpris/releases)
-and can be copied into one of the mpv scripts directories documented above.
+```
+make build && make install
+```
 
 A self-built `mpris.so` file can be installed with `make install` and will
 be installed to the appropriate mpv scripts directory for your current user
