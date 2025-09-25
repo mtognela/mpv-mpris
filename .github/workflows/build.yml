@@ -14,28 +14,19 @@ jobs:
       - name: Install Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: "0.14.1"
-      - name: Setup dirs
-        run: make setup
-      - name: Build Zig
-        run: |
-          make build-zig
-      - name: Verify zig build output
-        run: |
-          ls -la build/zig-out/lib/
-          file build/zig-out/lib/libmpris.so
+          version: "0.15.1"
       - name: Build c
         run: |
-          make build-c
+          make build
       - name: Verify c build output
         run: |
-          ls -la build/c-out/lib/
-          file build/c-out/lib/libmpris.so
+          ls -la mpris.so
+          file mpris.so
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
-          name: libmpris-so
-          path: build/zig-out/lib/libmpris.so
+          name: mpris-so
+          path: mpris.so
           if-no-files-found: error
       - name: Prepare for test
         run: |
@@ -53,8 +44,6 @@ jobs:
         run: |
           # Clean both make and zig artifacts
           make clean || true
-          zig build clean || true
-          make clean-all
       - name: Check cleanup removed generated files
         run: |
           ! git ls-files --others | grep .
