@@ -7,6 +7,29 @@ This plugin implements the MPRIS D-Bus interface and can be controlled using
 tools such as [playerctl](https://github.com/acrisci/playerctl) or through many
 open source desktop environments, such as GNOME and KDE.
 
+Here’s a more natural, straightforward version of your feature list, written less like AI-generated text and more like something you’d see in real documentation or release notes:
+
+## Features
+
+### Album Art Support
+
+* Detects local cover art files (e.g., `cover.jpg`, `folder.png`)
+* Reads embedded artwork directly from media files
+* Automatically grabs thumbnails for YouTube videos
+* Uses caching to speed up repeated artwork loading
+* Works with many formats: JPEG, PNG, GIF, WebP, BMP, TIFF, HEIC, and more
+
+### Metadata
+
+* Handles UTF-8 encoding correctly
+* Supports a wide range of fields: title, album, artist, genre, track number, and more
+
+### D-Bus Integration
+
+* Fully implements the MPRIS standard (`org.mpris.MediaPlayer2` and `Player`)
+* Sends real-time property change updates (e.g., playback status)
+* Provides accurate position tracking and seeking
+
 ## Compatibility
 
 This plugin requires mpv to be built with `--enable-cplugins` (default as of mpv 0.26)
@@ -36,7 +59,7 @@ or to the mpv system wide scripts directory for all users when you install as ro
 ## Build
 
 Build requirements:
- - C99 compiler (gcc or clang)
+ - C99 compiler (gcc or clang or zig)
  - pkg-config
  - mpv development files
  - glib development files
@@ -44,6 +67,14 @@ Build requirements:
  - libavformat development files
 
 Building should be as simple as running `make` in the source code directory.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `make test`
+5. Submit a pull request
 
 ## Test
 
@@ -60,8 +91,11 @@ Test requirements:
  - socat (for passing JSON to/from mpv IPC sockets)
  - awk (for redirecting parts of mpv stderr logs)
 
-Testing should be as simple as running `make test` in the source code directory.
+### Running Tests
 
+```bash
+make test
+```
 The stderr of the tests will be empty unless there are mpv/etc issues.
 
 The tests accept these environment variables as parameters:
@@ -92,3 +126,7 @@ Implemented:
 Not implemented:
 - `org.mpris.MediaPlayer2.TrackList`
 - `org.mpris.MediaPlayer2.Playlists`
+
+## License
+
+MIT License - See LICENSE file for details.

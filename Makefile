@@ -5,7 +5,6 @@ MKDIR := mkdir -p
 RMDIR := rmdir
 LN := ln
 RM := rm
-CC = zig cc
 
 # Base flags, environment CFLAGS / LDFLAGS can be appended.
 BASE_CFLAGS = -std=c99 -Wall -Wextra -O2 -pedantic $(shell $(PKG_CONFIG) --cflags gio-2.0 gio-unix-2.0 glib-2.0 mpv libavformat)
@@ -126,16 +125,15 @@ help:
 	@echo "  debug           - Build with GCC debug symbols"
 	@echo ""
 	@echo "Testing:"
-	@echo "  test            - Run both C and Zig tests"
+	@echo "  test            - Run tests"
 	@echo ""
 	@echo "Installation:"
 	@echo "  install         - Install plugin (user or system based on privileges)"
-	@echo "  install-user    - Install GCC-built plugin to user directory"
-	@echo "  install-system  - Install GCC-built plugin system-wide"
+	@echo "  install-user    - Install built plugin to user directory"
+	@echo "  install-system  - Install built plugin system-wide"
 	@echo "  uninstall       - Uninstall plugin"
 	@echo ""
 	@echo "Maintenance:"
-	@echo "  clean           - Remove GCC build files"
-	@echo "  clean-all       - Remove all build files"
+	@echo "  clean           - Remove build files"
 	@echo "  print-vars      - Print Makefile variables for debugging"
 	@echo "  help            - Show this help message"
