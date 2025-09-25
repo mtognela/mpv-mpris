@@ -38,20 +38,15 @@ UID ?= $(shell id -u)
 .PHONY: \
  install install-user install-system \
  uninstall uninstall-user uninstall-system \
- test test-zig test-c \
- clean clean-zig clean-all \
- debug debug-zig \
- build-zig build-c \
+ test \
+ clean \
+ debug \
+ build-c \
  setup help
 
-all: build-zig build-c
+all: build-c
 
-build: build-zig build-c 
-
-setup:
-	$(MKDIR) zig-out/bin
-	$(MKDIR) zig-out/lib
-	$(MKDIR) c-out/lib
+build: build-c 
 
 # C build target - build the shared library from .c files
 build-c $(TARGET): $(SRCS) $(HEADERS)
@@ -111,7 +106,7 @@ clean-c:
 	$(RM) -f $(TARGET)
 	$(MAKE) -C test clean
 
-clean: clean-
+clean: clean-c
 
 # Print variables for debugging the Makefile
 print-vars:
