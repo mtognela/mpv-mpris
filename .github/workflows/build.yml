@@ -17,7 +17,7 @@ jobs:
           version: "0.15.1"
       - name: Build c
         run: |
-          CC='zig cc' && make build
+          CC='zig cc' make build
       - name: Verify c build output
         run: |
           ls -la mpris.so
