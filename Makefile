@@ -1,4 +1,24 @@
-# Include the original Makefile
+# Copyright (c) 2017 Ho-Yon Mak
+# Copyright (c) 2025 Mattia Tognela
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 PKG_CONFIG = pkg-config
 INSTALL := install
 MKDIR := mkdir -p
@@ -7,7 +27,7 @@ LN := ln
 RM := rm
 
 # Base flags, environment CFLAGS / LDFLAGS can be appended.
-BASE_CFLAGS = -std=c99 -Wall -Wextra -O2 -pedantic $(shell $(PKG_CONFIG) --cflags gio-2.0 gio-unix-2.0 glib-2.0 mpv libavformat)
+BASE_CFLAGS = -std=c23 -Wall -Wextra -O2 -pedantic $(shell $(PKG_CONFIG) --cflags gio-2.0 gio-unix-2.0 glib-2.0 mpv libavformat)
 BASE_LDFLAGS = $(shell $(PKG_CONFIG) --libs gio-2.0 gio-unix-2.0 glib-2.0 mpv libavformat)
 
 # Directory structure
@@ -40,23 +60,14 @@ UID ?= $(shell id -u)
  test \
  clean \
  debug \
- build-c \
+ build \
  setup help
 
-all: build-c
-
-build: build-c 
-
-# C build target - build the shared library from .c files
-build-c $(TARGET): $(SRCS) $(HEADERS)
+build $(TARGET): $(SRCS) $(HEADERS)
 	$(CC) $(BASE_CFLAGS) $(CFLAGS) $(INCLUDE_FLAGS) -fPIC -shared -o $(TARGET) $(SRCS) $(BASE_LDFLAGS) $(LDFLAGS)
-
-
-test-c: $(TARGET)
+	
+test: $(TARGET)
 	$(MAKE) -C test
-
-# Combined test target - run both C and Zig tests
-test: test-c
 
 # Install logic based on user privileges
 ifneq ($(UID),0)
@@ -67,7 +78,7 @@ install: install-system
 uninstall: uninstall-system
 endif
 
-# User installation - can install either regular or Zig-built version
+# User installation 
 install-user: $(TARGET)
 	$(MKDIR) -p $(SCRIPTS_DIR)
 	$(INSTALL) -t $(SCRIPTS_DIR) $(TARGET)
@@ -83,13 +94,6 @@ install-system: $(TARGET)
 	$(MKDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR)
 	$(LN) -sf $(PLUGINDIR)/$(TARGET) $(DESTDIR)$(SYS_SCRIPTS_DIR)
 
-install-system-zig: $(ZIG_TARGET)
-	$(MKDIR) -p $(DESTDIR)$(PLUGINDIR)
-	$(INSTALL) -t $(DESTDIR)$(PLUGINDIR) $(ZIG_TARGET)
-	cd $(DESTDIR)$(PLUGINDIR) && ln -sf libmpris.so mpris.so
-	$(MKDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR)
-	$(LN) -sf $(PLUGINDIR)/mpris.so $(DESTDIR)$(SYS_SCRIPTS_DIR)
-
 uninstall-system:
 	$(RM) -f $(DESTDIR)$(SYS_SCRIPTS_DIR)/$(TARGET) $(DESTDIR)$(SYS_SCRIPTS_DIR)/mpris.so
 	-$(RMDIR) -p $(DESTDIR)$(SYS_SCRIPTS_DIR) 2>/dev/null || true
@@ -101,11 +105,9 @@ debug: BASE_CFLAGS := $(BASE_CFLAGS:-O2=-O0 -g -DDEBUG)
 debug: $(TARGET)
 
 # Clean targets
-clean-c:
+clean:
 	$(RM) -f $(TARGET)
 	$(MAKE) -C test clean
-
-clean: clean-c
 
 # Print variables for debugging the Makefile
 print-vars:
@@ -119,10 +121,10 @@ help:
 	@echo "Available targets:"
 	@echo ""
 	@echo "Building:"
-	@echo "  all             - Build with Zig compiler (default)"
-	@echo "  build-c         - Build mpris.so with zig cc"
-	@echo "  $(TARGET)       - Build mpris.so with zig cc (alias)"
-	@echo "  debug           - Build with GCC debug symbols"
+	@echo "  all             - Build with a C23 compliant compiler (default)"
+	@echo "  build           - Build mpris.so with C23 compliant compiler"
+	@echo "  $(TARGET)       - Build mpris.so with C23 compliant compiler (alias)"
+	@echo "  debug           - Build with C23 compliant compiler bug symbols"
 	@echo ""
 	@echo "Testing:"
 	@echo "  test            - Run tests"

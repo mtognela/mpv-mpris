@@ -59,7 +59,7 @@ or to the mpv system wide scripts directory for all users when you install as ro
 ## Build
 
 Build requirements:
- - C99 compiler (gcc or clang or zig)
+ - C23 compiler (gcc or clang or zig cc)
  - pkg-config
  - mpv development files
  - glib development files
@@ -71,7 +71,7 @@ Building should be as simple as running `make` in the source code directory.
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (I really )
 3. Make your changes
 4. Run tests: `make test`
 5. Submit a pull request
@@ -123,10 +123,22 @@ Implemented:
 - `org.mpris.MediaPlayer2` 
 - `org.mpris.MediaPlayer2.Player` 
 
-Not implemented:
+To implement:
 - `org.mpris.MediaPlayer2.TrackList`
 - `org.mpris.MediaPlayer2.Playlists`
+
+## Upstream                                                                 
+                                                                        
+Upstream git repo at:                                                       
+```bash                                                                               
+git clone https://github.com/mtognela/mpv-mpris.git                            
+```                                                    
 
 ## License
 
 MIT License - See LICENSE file for details.
+                                                                              
+## Credits                                                                  
+                      
+Copyright (c) 2017 Ho-Yon Mak                                                                                                                                  
+Copyright: (c) 2025 Mattia Tognela                                          
