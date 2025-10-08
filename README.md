@@ -71,7 +71,7 @@ Building should be as simple as running `make` in the source code directory.
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch (I really )
+2. Create a feature branch (I really appreciate if you consider the TODO.md)
 3. Make your changes
 4. Run tests: `make test`
 5. Submit a pull request
@@ -122,10 +122,6 @@ These parameters are useful for running the tests in alternate test scenarios.
 Implemented:
 - `org.mpris.MediaPlayer2` 
 - `org.mpris.MediaPlayer2.Player` 
-
-To implement:
-- `org.mpris.MediaPlayer2.TrackList`
-- `org.mpris.MediaPlayer2.Playlists`
 
 ## Upstream                                                                 
                                                                         
