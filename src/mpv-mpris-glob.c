@@ -26,7 +26,7 @@
 #include "mpv-mpris-types.h"
 #include "mpv-mpris-dbus.h"
 
-const char art_files[][32] = {
+const char *art_files = {
     // Windows standard
     "Folder.jpg", "Folder.png", "Folder.gif", "Folder.webp",
     "AlbumArtSmall.jpg", "AlbumArt.jpg", "AlbumArt.png",

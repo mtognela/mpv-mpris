@@ -85,14 +85,14 @@ gboolean is_art_file(const char *filename) {
     
     for (int i = 0; i < art_files_count; i++) {
         // Simple string comparison for exact matches
-        if (g_strcmp0(filename, art_files[i]) == 0) {
+        if (g_strcmp0(filename, (const char *) art_files[i]) == 0) {
             return TRUE;
         }
         
         // Handle wildcard patterns (basic implementation)
-        if (strstr(art_files[i], "{*}") != NULL) {
+        if (strstr((const char *) art_files[i], "{*}") != NULL) {
             // Extract prefix and suffix for pattern matching
-            gchar **parts = g_strsplit(art_files[i], "{*}", 2);
+            gchar **parts = g_strsplit((const char *) art_files[i], "{*}", 2);
             if (parts[0] && parts[1]) {
                 if (g_str_has_prefix(filename, parts[0]) && 
                     g_str_has_suffix(filename, parts[1])) {
@@ -312,7 +312,7 @@ gchar *try_get_local_art(mpv_handle *mpv, char *path) {
     // First, try the predefined art file names
     for (int i = 0; i < local_art_files_count && !found; i++) {
         // Skip wildcard patterns for now
-        if (strstr(art_files[i], "{*}") != NULL) {
+        if (strstr((const char *) art_files[i], "{*}") != NULL) {
             continue;
         }
         

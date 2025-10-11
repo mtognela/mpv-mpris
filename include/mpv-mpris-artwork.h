@@ -31,7 +31,7 @@
 gchar *path_to_uri(mpv_handle *mpv, char *path);
 
 // Album art file patterns
-extern const char art_files[][32];
+extern const char *art_files;
 
 // Supported image extensions
 extern const char *supported_extensions[];

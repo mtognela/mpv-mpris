@@ -48,7 +48,7 @@ extern GRegex *youtube_url_regex;
 
 extern const char *supported_extensions[];
 
-extern const char art_files[][32];
+extern const char *art_files;
 
 extern const char *introspection_xml;
 
@@ -89,7 +89,7 @@ extern GRegex *youtube_url_regex;
 
 extern const char *supported_extensions[];
 
-extern const char art_files[][32];
+extern const char *art_files;
 
 extern const char *introspection_xml;
 

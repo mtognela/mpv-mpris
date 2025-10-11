@@ -313,7 +313,7 @@ gchar *try_get_local_art_enhanced(mpv_handle *mpv, const char *path) {
     // First, try the predefined art file names
     for (int i = 0; i < local_art_files_count && !found; i++) {
         // Skip wildcard patterns for now
-        if (strstr(art_files[i], "{*}") != NULL) {
+        if (strstr((const char *) art_files[i], "{*}") != NULL) {
             continue;
         }
         
