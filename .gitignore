@@ -14,6 +14,7 @@ test/*.exit-code.log
 test/*.stderr.log
 test/*.stdout.log
 .vscode/
+.idea
 _temp*/
 .zig-cache/
 zig-out/
